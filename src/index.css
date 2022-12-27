@@ -81,19 +81,17 @@ html {
   text-align: center;
 }
 
-.wrapper {
+.grid-wrapper {
   margin: 2em 1em;
   display: flex;
   gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  grid-auto-rows: minmax(100px, auto);
 }
 
-.items[data='entered'] {
+.list [data='entered'] {
   border: 1px solid red;
 }
 
-.items {
+.list {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -102,7 +100,7 @@ html {
   border: 2px solid #4d9f0c;
 }
 
-.item {
+.note {
   user-select: none;
   border-radius: 3px;
   padding: 1rem 1rem;
@@ -116,6 +114,6 @@ html {
   gap: 10px;
 }
 
-.item .text {
+.note .text {
   font-style: italic;
 }
