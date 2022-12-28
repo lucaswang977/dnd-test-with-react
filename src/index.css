@@ -83,7 +83,8 @@ html {
 
 .grid-wrapper {
   margin: 2em 1em;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 250px);
   gap: 10px;
 }
 
