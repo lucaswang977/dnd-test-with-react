@@ -4,6 +4,7 @@
 // [x] We need the note to be fixed width and variable height.
 // [x] We will store the refs of all the notes and update as they change.
 // [x] A note can be dragged in front of any note in other lists.
+// [ ] Learn from RBD to enhance our UX.
 // [ ] Separate selectedNote from grid data, then update them individually.
 // [ ] Make the page a little prettier.
 // [ ] Add animating effect.
@@ -189,10 +190,12 @@ const Grid = (props: { gridData: GridData }) => {
           console.log('grid: ', grid);
 
           // Set relayout flag
+          // TODO: 
           // - Since we are not able to get the element absolute position in DOM before relayout
           //   we have to put it off to the next render cycle.
           // - If we want to get the exact position of the DOM element, we should clear the transform
-          //   styles. 
+          //   styles first. This is not a good solution, since there will be several frames of 
+          //   rendering before transforming.
           ai.mouseDownX = mousePos.x;
           ai.mouseDownY = mousePos.y;
           setRelayoutFlag(true);
