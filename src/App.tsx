@@ -4,6 +4,11 @@
 // [x] We need the note to be fixed width and variable height.
 // [x] We will store the refs of all the notes and update as they change.
 // [x] A note can be dragged in front of any note in other lists.
+// [ ] Separate selectedNote from grid data, then update them individually.
+// [ ] Make the page a little prettier.
+// [ ] Add animating effect.
+// [ ] Reduce unnecessary rendering.
+// [ ] Write a blog on this implementation.
 //
 // Note:
 // * Transform.translate accepts the arguments which are relative to the DOM's original positions.
@@ -52,13 +57,6 @@ type ListRefs = {
   listRef: HTMLElement | null,
 }[];
 
-const isPosInRect = (pos: { x: number; y: number }, rect: DOMRect) =>
-  pos.x >= rect.x &&
-  pos.x <= rect.x + rect.width &&
-  pos.y >= rect.y &&
-  pos.y <= rect.y + rect.height;
-
-
 const List = (props: ListInterface) => {
   return (
     <div ref={props.saveListRef} className="list">
@@ -97,10 +95,6 @@ const Grid = (props: { gridData: GridData }) => {
   const [gridState, setGridState] = useState(props.gridData);
   const [relayoutFlag, setRelayoutFlag] = useState(false);
 
-  // To save all the DOMs for get the client bounding rects
-  const noteRefs = useRef<NoteRefs>([]);
-  const listRefs = useRef<ListRefs>([]);
-
   // It will be accessed in window's event handler
   const [mousePos, _setMousePos] = useState<{ x: number, y: number }>();
   const mousePosRef = useRef(mousePos);
@@ -109,14 +103,23 @@ const Grid = (props: { gridData: GridData }) => {
     _setMousePos(pos);
   }
 
+  // To save all the DOMs for get the client bounding rects
+  const noteRefs = useRef<NoteRefs>([]);
+  const listRefs = useRef<ListRefs>([]);
+
   // Utility functions
+  const isPosInRect = (pos: { x: number; y: number }, rect: DOMRect) =>
+    pos.x >= rect.x &&
+    pos.x <= rect.x + rect.width &&
+    pos.y >= rect.y &&
+    pos.y <= rect.y + rect.height;
+
   const getYAxisArray = (listId: number) => {
     let yAxises: number[] = [];
     if (noteRefs.current) {
       const listNotes = noteRefs.current.filter(item => item.listId === listId);
       yAxises = listNotes.map((item) =>
-      (item.noteRef?.getBoundingClientRect().y! +
-        item.noteRef?.getBoundingClientRect().height!));
+        (item.noteRef?.getBoundingClientRect().y! + item.noteRef?.getBoundingClientRect().height!));
     }
 
     return yAxises;
@@ -141,8 +144,10 @@ const Grid = (props: { gridData: GridData }) => {
   useEffect(() => {
     if (!gridState.activeItem || !mousePos) return;
 
+    // When mouse is in dragging mode, we will do a lot of calculations here
     setGridState((gs) => {
       if (!gs.activeItem) return gs;
+
       let ai = gs.activeItem;
       let grid = gs.grid;
 
@@ -155,6 +160,7 @@ const Grid = (props: { gridData: GridData }) => {
 
         // Find the appropriate position to insert the note into
         const index = findInsertIndexByYAxis(mousePos.y, getYAxisArray(targetList.listId));
+        // console.log('yaxis: ', getYAxisArray(targetList.listId), noteRefs.current);
         if (index === undefined) return gs;
 
         const fromIndex = grid[ai.listId].findIndex((item) => item.id === ai.noteId);
@@ -170,6 +176,8 @@ const Grid = (props: { gridData: GridData }) => {
 
           // Remove it from current list
           grid[ai.listId].splice(fromIndex, 1);
+          // Remove it from noteRefs
+          noteRefs.current.splice(noteRefs.current.findIndex((n) => n.noteId === selectedNote.id), 1);
           // Insert it into the target list
           grid[targetList.listId].splice(index, 0, selectedNote);
 
@@ -323,8 +331,12 @@ const Grid = (props: { gridData: GridData }) => {
         }
 
         return (
-          <List saveListRef={saveListRef} saveNoteRef={saveNoteRef}
-            key={colIndex} listId={colIndex} data={column}
+          <List
+            saveListRef={saveListRef}
+            saveNoteRef={saveNoteRef}
+            key={colIndex}
+            listId={colIndex}
+            data={column}
             onNoteSelected={handleMouseDown}
             selectedNoteId={selectedNoteId}
             selectedNoteTransformTo={selectedNoteTransformTo} />
@@ -391,6 +403,16 @@ function App() {
           text: 'be welcomed and every pain avoided. But in certain circumstances and owing to the claims of duty or the obligations of business it will frequently occur that',
         },
       ],
+      [
+
+        {
+          id: 12,
+          text: 'But in certain circumstances and owing to the claims of duty or the obligations of business it will frequently occur that',
+        },
+      ],
+      [
+
+      ]
     ],
   };
 
