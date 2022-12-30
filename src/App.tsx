@@ -4,9 +4,9 @@
 // [x] We need the note to be fixed width and variable height.
 // [x] We will store the refs of all the notes and update as they change.
 // [x] A note can be dragged in front of any note in other lists.
+// [x] Make the height of every list is different.
 // [ ] Learn from RBD to enhance our UX.
 // [ ] Separate selectedNote from grid data, then update them individually.
-// [ ] Make the page a little prettier.
 // [ ] Add animating effect.
 // [ ] Reduce unnecessary rendering.
 // [ ] Write a blog on this implementation.
@@ -14,6 +14,15 @@
 // Note:
 // * Transform.translate accepts the arguments which are relative to the DOM's original positions.
 // * So after re-layout, the DOM is changed, we have to re-caculate the mouse down pos with the new DOM position.
+//
+// Update: (learned from RBD)
+// * We don't have to change the source DOM when the note is dragged into another list,
+//   it should be removed once the mouse is up. (this will solve the shaky problem when 
+//   dragging across lists)
+// * When dragging is started, the dragged element will be set to position:fixed, and transform
+//   will also be set on all the belowed elements.
+// * The key point is to never reset the source element's DOM position to avoid re-calculate
+//   the transform arguments.
 
 import { useEffect, useState, useRef } from 'react';
 
@@ -22,6 +31,9 @@ type GridData = {
     // List is the vertical line, every list contains some notes.
     listId: number;
     noteId: number;
+    // Width and height when mouse pressed down
+    w: number;
+    h: number;
     // The position when mouse clicked down
     mouseDownX: number;
     mouseDownY: number;
@@ -43,7 +55,7 @@ interface ListInterface {
   saveListRef: (element: HTMLElement | null) => void,
   saveNoteRef: (listId: number, noteId: number, element: HTMLElement | null) => void,
   selectedNoteId: number | undefined,
-  selectedNoteTransformTo: { x: number, y: number } | undefined,
+  selectedNoteTransform: { x: number, y: number, w: number, h: number } | undefined,
   onNoteSelected: (ev: React.MouseEvent<HTMLDivElement, MouseEvent>, activeItem: { listId: number; noteId: number }) => void
 }
 
@@ -64,10 +76,13 @@ const List = (props: ListInterface) => {
       {props.data.map((note) => {
         let transformStyle = {};
         if (props.selectedNoteId !== undefined
-          && props.selectedNoteTransformTo !== undefined
+          && props.selectedNoteTransform !== undefined
           && props.selectedNoteId === note.id) {
           transformStyle = {
-            transform: `translateX(${props.selectedNoteTransformTo.x}px) translateY(${props.selectedNoteTransformTo.y}px) scale(1.05)`,
+            position: 'fixed',
+            height: `${props.selectedNoteTransform.h}px`,
+            width: `${props.selectedNoteTransform.w}px`,
+            transform: `translateX(${props.selectedNoteTransform.x}px) translateY(${props.selectedNoteTransform.y}px) scale(1.05)`,
           };
         }
         const saveNoteRef = (element: HTMLElement | null) => {
@@ -88,6 +103,7 @@ const List = (props: ListInterface) => {
           </div>
         );
       })}
+      <div className="placeholder"></div>
     </div>
   );
 };
@@ -256,12 +272,13 @@ const Grid = (props: { gridData: GridData }) => {
 
   const handleMouseDown = (
     ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
-    activeItem: { listId: number; noteId: number }
+    selectedItem: { listId: number; noteId: number }
   ) => {
-    console.log('MouseDown', ev.clientX, ev.clientY, activeItem);
+    console.log('MouseDown', ev.clientX, ev.clientY, selectedItem);
     setMousePos({ x: ev.clientX, y: ev.clientY });
 
-    const rect = findNoteRect(activeItem.listId, activeItem.noteId);
+    const rect = findNoteRect(selectedItem.listId, selectedItem.noteId);
+    console.log(rect!.width, rect!.height);
     if (rect !== undefined) {
       window.addEventListener('mouseup', handleMouseUp);
       window.addEventListener('mousemove', handleMouseMove);
@@ -270,8 +287,10 @@ const Grid = (props: { gridData: GridData }) => {
         return {
           grid: gs.grid,
           activeItem: {
-            listId: activeItem.listId,
-            noteId: activeItem.noteId,
+            listId: selectedItem.listId,
+            noteId: selectedItem.noteId,
+            w: rect.width,
+            h: rect.height,
             dx: ev.clientX - rect.x,
             dy: ev.clientY - rect.y,
             mouseDownX: ev.clientX,
@@ -286,7 +305,7 @@ const Grid = (props: { gridData: GridData }) => {
     <div className="grid-wrapper">
       {gridState.grid.map((column, colIndex) => {
         let selectedNoteId: number | undefined = undefined;
-        let selectedNoteTransformTo = undefined;
+        let selectedNoteTransform = undefined;
         if (gridState.activeItem && mousePos && gridState.activeItem.listId == colIndex) {
           selectedNoteId = gridState.activeItem.noteId;
           let rect = findNoteRect(gridState.activeItem.listId, gridState.activeItem.noteId);
@@ -301,7 +320,7 @@ const Grid = (props: { gridData: GridData }) => {
           //   ' Mouse(', Math.floor(gridState.activeItem.mouseDownX), Math.floor(gridState.activeItem.mouseDownY), ')',
           //   ' Trans(', Math.floor(x), Math.floor(y), ')');
 
-          selectedNoteTransformTo = { x: x, y: y };
+          selectedNoteTransform = { x: x, y: y, w: gridState.activeItem.w, h: gridState.activeItem.h };
         }
         const saveListRef = (element: HTMLElement | null) => {
           if (listRefs.current && element) {
@@ -342,7 +361,7 @@ const Grid = (props: { gridData: GridData }) => {
             data={column}
             onNoteSelected={handleMouseDown}
             selectedNoteId={selectedNoteId}
-            selectedNoteTransformTo={selectedNoteTransformTo} />
+            selectedNoteTransform={selectedNoteTransform} />
         );
       })}
     </div>
@@ -412,9 +431,6 @@ function App() {
           id: 12,
           text: 'But in certain circumstances and owing to the claims of duty or the obligations of business it will frequently occur that',
         },
-      ],
-      [
-
       ]
     ],
   };
