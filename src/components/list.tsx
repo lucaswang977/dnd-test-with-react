@@ -1,13 +1,22 @@
-import { Note } from '../types';
+import { Note } from "../types";
 
 export interface ListInterface {
-  listId: number,
-  data: Note[],
-  saveListRef: (element: HTMLElement | null) => void,
-  saveNoteRef: (listId: number, noteId: number, element: HTMLElement | null) => void,
-  selectedNoteId: number | undefined,
-  selectedNoteTransform: { x: number, y: number, w: number, h: number } | undefined,
-  onNoteSelected: (ev: React.MouseEvent<HTMLDivElement, MouseEvent>, activeItem: { listId: number; noteId: number }) => void
+  listId: number;
+  data: Note[];
+  saveListRef: (element: HTMLElement | null) => void;
+  saveNoteRef: (
+    listId: number,
+    noteId: number,
+    element: HTMLElement | null
+  ) => void;
+  selectedNoteId: number | undefined;
+  selectedNoteTransform:
+    | { x: number; y: number; w: number; h: number }
+    | undefined;
+  onNoteSelected: (
+    ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    activeItem: { listId: number; noteId: number }
+  ) => void;
 }
 
 const List = (props: ListInterface) => {
@@ -16,25 +25,29 @@ const List = (props: ListInterface) => {
       {props.data.map((note, rowIndex) => {
         let transformStyle = {};
 
-        if (props.selectedNoteId !== undefined
-          && props.selectedNoteTransform !== undefined) {
-
+        if (
+          props.selectedNoteId !== undefined &&
+          props.selectedNoteTransform !== undefined
+        ) {
           if (props.selectedNoteId === note.id) {
             transformStyle = {
-              position: 'fixed',
+              position: "fixed",
               height: `${props.selectedNoteTransform.h}px`,
               width: `${props.selectedNoteTransform.w}px`,
               transform: `translateX(${props.selectedNoteTransform.x}px) translateY(${props.selectedNoteTransform.y}px) scale(1.05)`,
             };
-          } else if (rowIndex > props.data.findIndex((item) => item.id === props.selectedNoteId)) {
+          } else if (
+            rowIndex >
+            props.data.findIndex((item) => item.id === props.selectedNoteId)
+          ) {
             transformStyle = {
-              transform: `translateY(${props.selectedNoteTransform.h}px)`
-            }
+              transform: `translateY(${props.selectedNoteTransform.h}px)`,
+            };
           }
         }
         const saveNoteRef = (element: HTMLElement | null) => {
           if (element) props.saveNoteRef(props.listId, note.id, element);
-        }
+        };
         return (
           <div
             ref={saveNoteRef}
@@ -42,7 +55,10 @@ const List = (props: ListInterface) => {
             className="note"
             style={transformStyle}
             onMouseDown={(ev) =>
-              props.onNoteSelected(ev, { listId: props.listId, noteId: note.id })
+              props.onNoteSelected(ev, {
+                listId: props.listId,
+                noteId: note.id,
+              })
             }
           >
             <p>Item {note.id + 1}</p>
@@ -50,11 +66,15 @@ const List = (props: ListInterface) => {
           </div>
         );
       })}
-      {
-        (props.selectedNoteId !== undefined && props.selectedNoteTransform !== undefined) ?
-          <div className="placeholder" style={{ height: `${props.selectedNoteTransform.h}px` }}></div> :
-          <div className="placeholder"></div>
-      }
+      {props.selectedNoteId !== undefined &&
+      props.selectedNoteTransform !== undefined ? (
+        <div
+          className="placeholder"
+          style={{ height: `${props.selectedNoteTransform.h}px` }}
+        ></div>
+      ) : (
+        <div className="placeholder"></div>
+      )}
     </div>
   );
 };
