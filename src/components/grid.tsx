@@ -1,6 +1,25 @@
 // TODO:
-// [ ] Remove all the refs except for the dragging node.
+// [x] We need the note to be fixed width and variable height.
+// [x] We will store the refs of all the notes and update as they change.
+// [x] A note can be dragged in front of any note in other lists.
+// [x] Make the height of every list is different.
+// [ ] Separate List from Grid, update them individually.
+// [ ] Add animating effect.
+// [ ] Reduce unnecessary rendering.
+// [ ] Write a blog on this implementation.
 //
+// Note:
+// * Transform.translate accepts the arguments which are relative to the DOM's original positions.
+// * So after re-layout, the DOM is changed, we have to re-caculate the mouse down pos with the new DOM position.
+//
+// Update: (learned from RBD)
+// * We don't have to change the source DOM when the note is dragged into another list,
+//   it should be removed once the mouse is up. (this will solve the shaky problem when
+//   dragging across lists)
+// * When dragging is started, the dragged element will be set to position:fixed, and transform
+//   will also be set on all the belowed elements.
+// * The key point is to never reset the source element's DOM position to avoid re-calculate
+//   the transform arguments.
 
 import { useEffect, useState, useRef } from "react";
 import { GridData, NoteRefs, ListRefs } from "../types";
@@ -79,76 +98,76 @@ const Grid = (props: { gridData: GridData }) => {
       let grid = gs.grid;
 
       // Calculate which list the selected note is on right now.
-      if (listRefs.current) {
-        const targetList = listRefs.current.find(
-          (list) =>
-            list.listRef &&
-            isPosInRect(mousePos, list.listRef.getBoundingClientRect())
-        );
+      // if (listRefs.current) {
+      //   const targetList = listRefs.current.find(
+      //     (list) =>
+      //       list.listRef &&
+      //       isPosInRect(mousePos, list.listRef.getBoundingClientRect())
+      //   );
 
-        if (targetList === undefined) return gs;
+      //   if (targetList === undefined) return gs;
 
-        // Find the appropriate position to insert the note into
-        const index = findInsertIndexByYAxis(
-          mousePos.y,
-          getYAxisArray(targetList.listId)
-        );
-        // console.log('yaxis: ', getYAxisArray(targetList.listId), noteRefs.current);
-        if (index === undefined) return gs;
+      //   // Find the appropriate position to insert the note into
+      //   const index = findInsertIndexByYAxis(
+      //     mousePos.y,
+      //     getYAxisArray(targetList.listId)
+      //   );
+      //   // console.log('yaxis: ', getYAxisArray(targetList.listId), noteRefs.current);
+      //   if (index === undefined) return gs;
 
-        const fromIndex = grid[ai.listId].findIndex(
-          (item) => item.id === ai.noteId
-        );
-        const selectedNote = grid[ai.listId][fromIndex];
+      //   const fromIndex = grid[ai.listId].findIndex(
+      //     (item) => item.id === ai.noteId
+      //   );
+      //   const selectedNote = grid[ai.listId][fromIndex];
 
-        if (
-          (targetList.listId === ai.listId && index !== fromIndex) ||
-          targetList.listId !== ai.listId
-        ) {
-          // Duplicate the grid and activeItem
-          grid = gs.grid.map((arr) => arr.slice());
+      //   if (
+      //     (targetList.listId === ai.listId && index !== fromIndex) ||
+      //     targetList.listId !== ai.listId
+      //   ) {
+      //     // Duplicate the grid and activeItem
+      //     grid = gs.grid.map((arr) => arr.slice());
 
-          console.log(
-            "from list: ",
-            ai.listId,
-            ", to list: ",
-            targetList.listId,
-            " move row: ",
-            fromIndex,
-            " to row:",
-            index,
-            grid
-          );
+      //     console.log(
+      //       "from list: ",
+      //       ai.listId,
+      //       ", to list: ",
+      //       targetList.listId,
+      //       " move row: ",
+      //       fromIndex,
+      //       " to row:",
+      //       index,
+      //       grid
+      //     );
 
-          // Remove it from current list
-          grid[ai.listId].splice(fromIndex, 1);
-          // Remove it from noteRefs
-          noteRefs.current.splice(
-            noteRefs.current.findIndex((n) => n.noteId === selectedNote.id),
-            1
-          );
-          // Insert it into the target list
-          grid[targetList.listId].splice(index, 0, selectedNote);
+      //     // Remove it from current list
+      //     grid[ai.listId].splice(fromIndex, 1);
+      //     // Remove it from noteRefs
+      //     noteRefs.current.splice(
+      //       noteRefs.current.findIndex((n) => n.noteId === selectedNote.id),
+      //       1
+      //     );
+      //     // Insert it into the target list
+      //     grid[targetList.listId].splice(index, 0, selectedNote);
 
-          // Clone the activeItem
-          ai = { ...gs.activeItem! };
-          // Set activeItem
-          ai.noteId = selectedNote.id;
-          ai.listId = targetList.listId;
-          console.log("grid: ", grid);
+      //     // Clone the activeItem
+      //     ai = { ...gs.activeItem! };
+      //     // Set activeItem
+      //     ai.noteId = selectedNote.id;
+      //     ai.listId = targetList.listId;
+      //     console.log("grid: ", grid);
 
-          // Set relayout flag
-          // TODO:
-          // - Since we are not able to get the element absolute position in DOM before relayout
-          //   we have to put it off to the next render cycle.
-          // - If we want to get the exact position of the DOM element, we should clear the transform
-          //   styles first. This is not a good solution, since there will be several frames of
-          //   rendering before transforming.
-          ai.mouseDownX = mousePos.x;
-          ai.mouseDownY = mousePos.y;
-          // setRelayoutFlag(true);
-        }
-      }
+      //     // Set relayout flag
+      //     // TODO:
+      //     // - Since we are not able to get the element absolute position in DOM before relayout
+      //     //   we have to put it off to the next render cycle.
+      //     // - If we want to get the exact position of the DOM element, we should clear the transform
+      //     //   styles first. This is not a good solution, since there will be several frames of
+      //     //   rendering before transforming.
+      //     ai.mouseDownX = mousePos.x;
+      //     ai.mouseDownY = mousePos.y;
+      //     // setRelayoutFlag(true);
+      //   }
+      // }
 
       return {
         grid: grid,
@@ -204,13 +223,23 @@ const Grid = (props: { gridData: GridData }) => {
 
   const handleMouseDown = (
     ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
-    selectedItem: { listId: number; noteId: number }
+    selectedItem: { listId: number; noteId: number; rowIndex: number }
   ) => {
     console.log("MouseDown", ev.clientX, ev.clientY, selectedItem);
     setMousePos({ x: ev.clientX, y: ev.clientY });
 
+    let offset = 0;
+
+    if (noteRefs && noteRefs.current) {
+      noteRefs.current.forEach((item) => {
+        if (item.noteRef) item.top = item.noteRef.getBoundingClientRect().top;
+        // TODO: Calculate the offset
+      });
+
+      console.log(noteRefs);
+    }
+
     const rect = findNoteRect(selectedItem.listId, selectedItem.noteId);
-    console.log(rect!.width, rect!.height);
     if (rect !== undefined) {
       window.addEventListener("mouseup", handleMouseUp);
       window.addEventListener("mousemove", handleMouseMove);
@@ -221,12 +250,14 @@ const Grid = (props: { gridData: GridData }) => {
           activeItem: {
             listId: selectedItem.listId,
             noteId: selectedItem.noteId,
+            rowIndex: selectedItem.rowIndex,
             w: rect.width,
             h: rect.height,
             dx: ev.clientX - rect.x,
             dy: ev.clientY - rect.y,
             mouseDownX: ev.clientX,
             mouseDownY: ev.clientY,
+            offset: offset,
           },
         };
       });
@@ -236,14 +267,16 @@ const Grid = (props: { gridData: GridData }) => {
   return (
     <div className="grid">
       {gridState.grid.map((column, colIndex) => {
-        let selectedNoteId: number | undefined = undefined;
+        let selectedNoteRowIndex: number | undefined = undefined;
         let selectedNoteTransform = undefined;
+        let insertingNoteTransform = undefined;
+
         if (
           gridState.activeItem &&
           mousePos &&
           gridState.activeItem.listId == colIndex
         ) {
-          selectedNoteId = gridState.activeItem.noteId;
+          selectedNoteRowIndex = gridState.activeItem.rowIndex;
           let rect = findNoteRect(
             gridState.activeItem.listId,
             gridState.activeItem.noteId
@@ -264,6 +297,13 @@ const Grid = (props: { gridData: GridData }) => {
             y: y,
             w: gridState.activeItem.w,
             h: gridState.activeItem.h,
+          };
+          // TODO: Selected a note doesn't mean there will be an inserting note.
+          insertingNoteTransform = {
+            w: gridState.activeItem.w,
+            h: gridState.activeItem.h,
+            y: mousePos.y,
+            offset: gridState.activeItem.offset,
           };
         }
         const saveListRef = (element: HTMLElement | null) => {
@@ -296,6 +336,8 @@ const Grid = (props: { gridData: GridData }) => {
 
             if (!alreadyCreated) {
               noteRefs.current.push({
+                rowIndex: 0,
+                top: 0,
                 listId: listId,
                 noteId: noteId,
                 noteRef: element,
@@ -304,6 +346,15 @@ const Grid = (props: { gridData: GridData }) => {
           }
         };
 
+        let noteTops: number[] = [];
+        if (noteRefs && noteRefs.current) {
+          let noteTopsInList = noteRefs.current.filter(
+            (item) => item.listId === colIndex
+          );
+          noteTopsInList.sort((a, b) => a.rowIndex - b.rowIndex);
+          noteTops = noteTopsInList.map((item) => item.top);
+        }
+
         return (
           <List
             saveListRef={saveListRef}
@@ -311,9 +362,11 @@ const Grid = (props: { gridData: GridData }) => {
             key={colIndex}
             listId={colIndex}
             data={column}
+            noteTops={noteTops}
             onNoteSelected={handleMouseDown}
-            selectedNoteId={selectedNoteId}
+            selectedNoteRowIndex={selectedNoteRowIndex}
             selectedNoteTransform={selectedNoteTransform}
+            insertingNoteTransform={insertingNoteTransform}
           />
         );
       })}

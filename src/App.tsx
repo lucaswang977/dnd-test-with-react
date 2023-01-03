@@ -1,28 +1,5 @@
 // This Drag and Drop in React practicing project
 
-// TODO:
-// [x] We need the note to be fixed width and variable height.
-// [x] We will store the refs of all the notes and update as they change.
-// [x] A note can be dragged in front of any note in other lists.
-// [x] Make the height of every list is different.
-// [ ] Separate List from Grid, update them individually.
-// [ ] Add animating effect.
-// [ ] Reduce unnecessary rendering.
-// [ ] Write a blog on this implementation.
-//
-// Note:
-// * Transform.translate accepts the arguments which are relative to the DOM's original positions.
-// * So after re-layout, the DOM is changed, we have to re-caculate the mouse down pos with the new DOM position.
-//
-// Update: (learned from RBD)
-// * We don't have to change the source DOM when the note is dragged into another list,
-//   it should be removed once the mouse is up. (this will solve the shaky problem when
-//   dragging across lists)
-// * When dragging is started, the dragged element will be set to position:fixed, and transform
-//   will also be set on all the belowed elements.
-// * The key point is to never reset the source element's DOM position to avoid re-calculate
-//   the transform arguments.
-
 import { GridData } from "./types";
 import Grid from "./components/grid";
 

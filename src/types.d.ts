@@ -3,6 +3,7 @@ export type GridData = {
     // List is the vertical line, every list contains some notes.
     listId: number;
     noteId: number;
+    rowIndex: number;
     // Width and height when mouse pressed down
     w: number;
     h: number;
@@ -12,6 +13,8 @@ export type GridData = {
     // The delta numbers between the mouse click position and element's left/top position
     dx: number;
     dy: number;
+    // The selected note's height plus its gap, for transform
+    offset: number;
   };
   grid: Note[][];
 };
@@ -22,14 +25,14 @@ export type Note = {
 };
 
 export type NoteRefs = {
-  listId: number,
-  noteId: number,
-  noteRef: HTMLElement | null
+  rowIndex: number;
+  listId: number;
+  top: number;
+  noteId: number;
+  noteRef: HTMLElement | null;
 }[];
 
 export type ListRefs = {
-  listId: number,
-  listRef: HTMLElement | null,
+  listId: number;
+  listRef: HTMLElement | null;
 }[];
-
-

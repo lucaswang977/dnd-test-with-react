@@ -112,6 +112,7 @@ html {
 
 .placeholder {
   min-width: 200px;
+  display: none;
   visibility: hidden;
 }
 
