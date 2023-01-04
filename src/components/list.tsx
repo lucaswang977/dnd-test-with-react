@@ -1,20 +1,22 @@
-import { useRef, useState } from "react";
-import { Note, NoteRefs } from "../types";
+import { Note } from "../types";
 
 export interface ListInterface {
   listId: number;
   data: Note[];
+  // TODO: We should transform all the notes according to this array
   noteTops: number[];
   saveListRef: (element: HTMLElement | null) => void;
   saveNoteRef: (
     listId: number,
     noteId: number,
+    rowIndex: number,
     element: HTMLElement | null
   ) => void;
   selectedNoteRowIndex: number | undefined;
   selectedNoteTransform:
     | { x: number; y: number; w: number; h: number }
     | undefined;
+  insertingNoteRowIndex: number | undefined;
   insertingNoteTransform:
     | { w: number; h: number; y: number; offset: number }
     | undefined;
@@ -24,12 +26,38 @@ export interface ListInterface {
   ) => void;
 }
 
-const findInsertIndexByYAxis = (posY: number, heights: number[]) => {
-  const resultIndex = heights.sort((a, b) => a - b).findIndex((y) => posY <= y);
-  return resultIndex < 0 ? heights.length : resultIndex;
+const NotePlaceholder = (props: { display: boolean; height: number }) => {
+  if (props.display) {
+    return (
+      <div
+        className="placeholder"
+        style={{
+          display: "block",
+          height: `${props.height}px`,
+        }}
+      ></div>
+    );
+  } else {
+    return <div className="placeholder"></div>;
+  }
 };
 
 const List = (props: ListInterface) => {
+  let phDisplay = false;
+  let phHeight = 0;
+
+  if (props.data.length === 1 && props.selectedNoteRowIndex !== undefined) {
+    phDisplay = true;
+  }
+
+  if (
+    props.insertingNoteRowIndex !== undefined &&
+    props.insertingNoteTransform != undefined
+  ) {
+    phDisplay = true;
+    phHeight = props.insertingNoteTransform.h;
+  }
+
   return (
     <div ref={props.saveListRef} className="list">
       {props.data.map((note, rowIndex) => {
@@ -46,9 +74,8 @@ const List = (props: ListInterface) => {
           const ox = props.selectedNoteTransform.x;
           const oy = props.selectedNoteTransform.y + parentOffsetY;
           transformStyle = {
-            position: "fixed",
+            position: "absolute",
             zIndex: 1,
-            height: `${props.selectedNoteTransform.h}px`,
             width: `${props.selectedNoteTransform.w}px`,
             transform: `translateX(${ox}px) translateY(${oy}px) scale(1)`,
           };
@@ -56,22 +83,10 @@ const List = (props: ListInterface) => {
 
         if (
           props.selectedNoteRowIndex !== rowIndex &&
+          props.insertingNoteRowIndex !== undefined &&
           props.insertingNoteTransform !== undefined
         ) {
-          let insertRowIndex =
-            findInsertIndexByYAxis(
-              props.insertingNoteTransform.y,
-              props.noteTops
-            ) - 1;
-          if (insertRowIndex < 0) insertRowIndex = 0;
-
-          console.log(
-            insertRowIndex,
-            props.insertingNoteTransform,
-            props.noteTops
-          );
-
-          if (rowIndex >= insertRowIndex) {
+          if (rowIndex >= props.insertingNoteRowIndex) {
             transformStyle = {
               transform: `translateY(${props.insertingNoteTransform.offset}px)`,
             };
@@ -80,7 +95,7 @@ const List = (props: ListInterface) => {
 
         const saveNoteRef = (element: HTMLDivElement | null) => {
           if (element) {
-            props.saveNoteRef(props.listId, note.id, element);
+            props.saveNoteRef(props.listId, note.id, rowIndex, element);
           }
         };
         return (
@@ -102,17 +117,7 @@ const List = (props: ListInterface) => {
           </div>
         );
       })}
-      {props.insertingNoteTransform !== undefined ? (
-        <div
-          className="placeholder"
-          style={{
-            display: "block",
-            height: `${props.insertingNoteTransform.h}px`,
-          }}
-        ></div>
-      ) : (
-        <div className="placeholder"></div>
-      )}
+      <NotePlaceholder display={phDisplay} height={phHeight} />
     </div>
   );
 };

@@ -104,14 +104,19 @@ html {
   min-width: 200px;
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.2);
   background: #FBC252;
-  transition: background-color 0.1s ease-in-out;
   cursor: grab;
   display: grid;
   place-items: center;
 }
 
 .placeholder {
+  user-select: none;
+  border-radius: 3px;
+  padding: 1rem;
   min-width: 200px;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.2);
+  background: #FBC252;
+  cursor: grab;
   display: none;
   visibility: hidden;
 }
