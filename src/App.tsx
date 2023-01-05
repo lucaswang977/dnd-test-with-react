@@ -1,4 +1,7 @@
 // This Drag and Drop in React practicing project
+//
+// Constraints:
+// - Every list should have a fixed width.
 
 import { GridData } from "./types";
 import Grid from "./components/grid";

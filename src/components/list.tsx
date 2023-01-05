@@ -86,7 +86,7 @@ const List = (props: ListInterface) => {
           props.insertingNoteRowIndex !== undefined &&
           props.insertingNoteTransform !== undefined
         ) {
-          if (rowIndex >= props.insertingNoteRowIndex) {
+          if (rowIndex > props.insertingNoteRowIndex) {
             transformStyle = {
               transform: `translateY(${props.insertingNoteTransform.offset}px)`,
             };

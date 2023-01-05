@@ -83,8 +83,8 @@ html {
 .grid {
   margin: 2em 1em;
   display: flex;
-  gap: 3rem;
-  justify-content: center;
+  gap: 0.5rem;
+  justify-content: space-between;
 }
 
 .list {
@@ -92,7 +92,7 @@ html {
   display: flex;
   flex-direction:column;
   gap: 1rem;
-  max-width: 250px;
+  width: 250px;
   background-color: #A3BB98;
   height: fit-content;
 }
@@ -101,11 +101,11 @@ html {
   user-select: none;
   border-radius: 3px;
   padding: 1rem;
-  min-width: 200px;
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.2);
   background: #FBC252;
   cursor: grab;
   display: grid;
+  min-width: 200px;
   place-items: center;
 }
 
@@ -113,11 +113,11 @@ html {
   user-select: none;
   border-radius: 3px;
   padding: 1rem;
-  min-width: 200px;
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.2);
   background: #FBC252;
   cursor: grab;
   display: none;
+  min-width: 200px;
   visibility: hidden;
 }
 
