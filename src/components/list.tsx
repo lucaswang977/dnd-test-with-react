@@ -5,10 +5,10 @@ export interface ListInterface {
   data: Note[];
   // TODO: We should transform all the notes according to this array
   noteTops: number[];
+  notePosTransform: { dx: number; dy: number };
   saveListRef: (element: HTMLElement | null) => void;
   saveNoteRef: (
     listId: number,
-    noteId: number,
     rowIndex: number,
     element: HTMLElement | null
   ) => void;
@@ -22,7 +22,7 @@ export interface ListInterface {
     | undefined;
   onNoteSelected: (
     ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
-    activeItem: { listId: number; noteId: number; rowIndex: number }
+    activeItem: { listId: number; rowIndex: number }
   ) => void;
 }
 
@@ -95,7 +95,7 @@ const List = (props: ListInterface) => {
 
         const saveNoteRef = (element: HTMLDivElement | null) => {
           if (element) {
-            props.saveNoteRef(props.listId, note.id, rowIndex, element);
+            props.saveNoteRef(props.listId, rowIndex, element);
           }
         };
         return (
@@ -107,7 +107,6 @@ const List = (props: ListInterface) => {
             onMouseDown={(ev) => {
               props.onNoteSelected(ev, {
                 listId: props.listId,
-                noteId: note.id,
                 rowIndex: rowIndex,
               });
             }}

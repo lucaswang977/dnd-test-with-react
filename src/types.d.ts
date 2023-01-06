@@ -10,6 +10,7 @@ export type DraggingStateType = {
   selectedListId: number;
   selectedRowIndex: number;
   selectedNoteHeightWithGap: number;
+  selectedListTransforming?: { dx: number; dy: number }[];
   // Selected note's width and height when mouse pressed down
   w: number;
   h: number;
@@ -19,18 +20,18 @@ export type DraggingStateType = {
   // Inserting related state
   insertingListId?: number;
   insertingRowIndex?: number;
+  insertingListTransforming?: { dx: number; dy: number }[];
 };
 
-export type NoteRefs = {
+export type NoteRef = {
   rowIndex: number;
   listId: number;
-  top?: number;
-  height?: number;
-  noteId: number;
+  top: number;
+  heightWithGap: number;
   noteRef: HTMLElement | null;
-}[];
+};
 
-export type ListRefs = {
+export type ListRef = {
   listId: number;
   listRef: HTMLElement | null;
-}[];
+};
