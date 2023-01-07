@@ -50,101 +50,112 @@ const Grid = (props: { gridData: GridData }) => {
     pos.y <= rect.y + rect.height;
 
   useEffect(() => {
-    if (!draggingState || !mousePos) return;
     // When mouse is in dragging mode, we will do a lot of calculations here
+    if (!draggingState || !mousePos) return;
     setDraggingState((ds) => {
-      if (ds === undefined) return ds;
+      if (ds === undefined || !listRefs.current) return ds;
+
       const dsModified = { ...ds };
 
-      // The tops/heights of notes are recorded when mouse down,
-      // here we filter out the data belongs to this list and sort by rowIndex.
-      // We have to clone all the data otherwise it could cause
-      // data stored in refs be corrupted.
-
-      // First calculate the state of the list which contains the selected note.
-      let notesInCurrentList: NoteRef[] = [];
-
-      noteRefs.current.forEach((item) => {
-        if (item.listId === ds.selectedListId) {
-          notesInCurrentList.push({ ...item });
-        }
-      });
-      notesInCurrentList.sort((a, b) => a.rowIndex - b.rowIndex);
-
-      // We have a note selected, so we should first update all the belowed note's
-      // position then remove it from this list.
-      notesInCurrentList.map((item, currentRowIndex) => {
-        if (currentRowIndex > ds.selectedRowIndex)
-          item.top = item.top - ds.selectedNoteHeightWithGap;
-      });
-
-      notesInCurrentList = notesInCurrentList.filter(
-        (item) => item.rowIndex !== ds.selectedRowIndex
+      // Move the selected note
+      const selectedNote = noteRefs.current.find(
+        (item) =>
+          item.listId === ds.selectedListId &&
+          item.rowIndex == ds.selectedRowIndex
+      );
+      const selectedListFirstNote = noteRefs.current.find(
+        (item) => item.listId === ds.selectedListId && item.rowIndex === 0
       );
 
-      // TODO: Save current state for later selected list rendering
-      const selectedList = noteRefs.current.filter(
-        (item) => item.listId === ds.selectedListId
+      if (
+        selectedNote &&
+        selectedListFirstNote &&
+        dsModified.selectedNoteTransform
+      ) {
+        dsModified.selectedNoteTransform = {
+          dx: mousePos.x - ds.mouseDownX,
+          dy:
+            mousePos.y -
+            ds.mouseDownY +
+            (selectedNote.top - selectedListFirstNote.top),
+          w: dsModified.selectedNoteTransform.w,
+          h: dsModified.selectedNoteTransform.h,
+        };
+      }
+
+      // Find which list the dragging note is currently on.
+      let targetList = listRefs.current.find(
+        (list) =>
+          list.listRef &&
+          isPosInRect(mousePos, list.listRef.getBoundingClientRect())
       );
-      selectedList.sort((a, b) => a.rowIndex - b.rowIndex);
-      const selectedListTransform = selectedList.map((item) => {
-        if (item.rowIndex === ds.selectedRowIndex) {
-          return {
-            dx: mousePos.x - ds.mouseDownX,
-            dy: mousePos.y - ds.mouseDownY,
-          };
-        } else {
-          return {
-            dx: 0,
-            dy: notesInCurrentList.find((i) => i.rowIndex == item.rowIndex)
-              ?.top,
-          };
-        }
-      });
 
-      // Second, calculate the state of the list which is being inserted.
-      if (listRefs.current) {
-        const targetList = listRefs.current.find(
-          (list) =>
-            list.listRef &&
-            isPosInRect(mousePos, list.listRef.getBoundingClientRect())
-        );
-
-        if (targetList === undefined) return ds;
-
+      // Calculate the transform data of the list which is being inserted.
+      if (targetList) {
         if (targetList.listId !== ds.insertingListId) {
           dsModified.insertingListId = targetList.listId;
         }
 
-        // If selected list is different from inserting list,
-        // we should recreate the calculating data.
-        if (targetList.listId !== ds.selectedListId) {
-          notesInCurrentList = [];
-          noteRefs.current.forEach((item) => {
-            if (item.listId === targetList.listId) {
-              notesInCurrentList.push({ ...item });
+        // We have to clone all the data otherwise data stored in refs
+        // could be corrupted.
+        let notesInInsertingList: NoteRef[] = [];
+
+        noteRefs.current.forEach((item) => {
+          if (targetList && item.listId === targetList.listId) {
+            notesInInsertingList.push({ ...item });
+          }
+        });
+
+        notesInInsertingList.sort((a, b) => a.rowIndex - b.rowIndex);
+        console.log("1)", notesInInsertingList);
+
+        // If this list is also the selected list, we have to firstly
+        // change the top of some notes since one note has been removed
+        // from the list already (by position:fixed).
+
+        // We have a note selected, so we should first update all the belowed note's
+        // position then remove it from this list.
+        if (targetList.listId === ds.selectedListId) {
+          notesInInsertingList = notesInInsertingList.map(
+            (item, currentRowIndex) => {
+              if (currentRowIndex > ds.selectedRowIndex) {
+                item.top = item.top - ds.selectedNoteHeightWithGap;
+              }
+              return { ...item };
             }
-          });
-          notesInCurrentList.sort((a, b) => a.rowIndex - b.rowIndex);
+          );
+
+          notesInInsertingList = notesInInsertingList.filter(
+            (item) => item.rowIndex !== ds.selectedRowIndex
+          );
+
+          console.log("2)", notesInInsertingList);
         }
+
+        // For later restore to this state
+        const notesStoredState: NoteRef[] = notesInInsertingList.map((item) => {
+          return { ...item };
+        });
+        console.log("Stored: ", notesStoredState);
 
         // We have an inserting note, so we should update
         // all the belowed note's posistion, but not inserting the selected one.
         if (ds.insertingRowIndex !== undefined) {
-          console.log("ds.inserting", ds.insertingRowIndex);
-          notesInCurrentList.map((item, currentRowIndex) => {
-            if (
-              ds.insertingRowIndex !== undefined &&
-              currentRowIndex >= ds.insertingRowIndex
-            )
-              item.top = item.top + ds.selectedNoteHeightWithGap;
-          });
+          notesInInsertingList = notesInInsertingList.map(
+            (item, currentRowIndex) => {
+              if (
+                ds.insertingRowIndex !== undefined &&
+                currentRowIndex >= ds.insertingRowIndex
+              )
+                item.top = item.top + ds.selectedNoteHeightWithGap;
+              return { ...item };
+            }
+          );
         }
+        console.log("3)", notesInInsertingList);
 
-        console.log("3)", notesInCurrentList);
-
-        // Find the suitable inserting row index.
-        notesInCurrentList.map((item, currentRowIndex) => {
+        // Find the new inserting row index.
+        notesInInsertingList.map((item, currentRowIndex) => {
           const tp = item.top;
           const sp = tp + item.heightWithGap / 2;
           const bt = tp + item.heightWithGap;
@@ -164,7 +175,39 @@ const Grid = (props: { gridData: GridData }) => {
           );
         });
 
-        // TODO: Save the inserting list state for later rendering.
+        // Restore to stored state then insert
+        if (dsModified.insertingRowIndex !== ds.insertingRowIndex) {
+          notesInInsertingList = notesStoredState.map(
+            (item, currentRowIndex) => {
+              if (
+                ds.insertingRowIndex !== undefined &&
+                currentRowIndex >= ds.insertingRowIndex
+              )
+                item.top = item.top + ds.selectedNoteHeightWithGap;
+              return { ...item };
+            }
+          );
+        }
+        console.log("5)", notesInInsertingList);
+
+        // Save the inserting list transform data for later rendering.
+        const insertingListTransform: { dx: number; dy: number }[] = [];
+        notesStoredState.map((item) => {
+          let currentNoteTop = 0;
+          const currentNote = notesInInsertingList.find(
+            (i) => i.rowIndex == item.rowIndex
+          );
+
+          if (currentNote) currentNoteTop = currentNote.top;
+
+          insertingListTransform[item.rowIndex] = {
+            dx: 0,
+            dy: currentNoteTop - item.top,
+          };
+        });
+        console.log("6)", insertingListTransform);
+
+        dsModified.insertingListTransform = insertingListTransform;
       }
 
       return dsModified;
@@ -179,6 +222,8 @@ const Grid = (props: { gridData: GridData }) => {
     window.removeEventListener("mousemove", handleMouseMove);
 
     setDraggingState(undefined);
+
+    // TODO: Update the grid state according to the latest dragging state.
   };
 
   const handleMouseMove = (ev: MouseEvent) => {
@@ -196,7 +241,10 @@ const Grid = (props: { gridData: GridData }) => {
 
     let selectedNoteWidth = 0;
     let selectedNoteHeight = 0;
+    let selectedNoteTop = 0;
     let selectedNoteHeightWithGap = 0;
+    let selectedListFirstNoteTop = 0;
+    let insertingListTransformData: { dx: number; dy: number }[] = [];
 
     // We do two things when mousedown is triggered:
     // * Save all the top/height(with gap) for later calculation on dragging state.
@@ -232,17 +280,23 @@ const Grid = (props: { gridData: GridData }) => {
             selectedNoteWidth = item.noteRef.getBoundingClientRect().width;
             selectedNoteHeight = item.noteRef.getBoundingClientRect().height;
             selectedNoteHeightWithGap = item.heightWithGap;
+            selectedNoteTop = item.top;
           }
 
-          console.log(
-            item.listId,
-            item.rowIndex,
-            item.noteRef.getBoundingClientRect(),
-            item.top,
-            nextTop,
-            item.heightWithGap
-          );
+          if (item.rowIndex === 0 && item.listId === selectedItem.listId)
+            selectedListFirstNoteTop = item.top;
         }
+      });
+
+      noteRefs.current.forEach((item) => {
+        if (
+          item.listId === selectedItem.listId &&
+          item.rowIndex > selectedItem.rowIndex
+        )
+          insertingListTransformData[item.rowIndex] = {
+            dx: 0,
+            dy: selectedNoteHeightWithGap,
+          };
       });
     }
     console.log(
@@ -250,18 +304,23 @@ const Grid = (props: { gridData: GridData }) => {
       ev.clientX,
       ev.clientY,
       selectedItem,
-      noteRefs.current
+      insertingListTransformData
     );
     setDraggingState({
       selectedListId: selectedItem.listId,
       selectedRowIndex: selectedItem.rowIndex,
       selectedNoteHeightWithGap: selectedNoteHeightWithGap,
-      w: selectedNoteWidth,
-      h: selectedNoteHeight,
+      selectedNoteTransform: {
+        dx: 0,
+        dy: selectedNoteTop - selectedListFirstNoteTop,
+        w: selectedNoteWidth,
+        h: selectedNoteHeight,
+      },
       mouseDownX: ev.clientX,
       mouseDownY: ev.clientY,
       insertingListId: selectedItem.listId,
       insertingRowIndex: selectedItem.rowIndex,
+      insertingListTransform: insertingListTransformData,
     });
   };
 
@@ -270,43 +329,23 @@ const Grid = (props: { gridData: GridData }) => {
       {gridState.map((column, colIndex) => {
         let selectedNoteRowIndex = undefined;
         let selectedNoteTransform = undefined;
-        let insertingNoteTransform = undefined;
         let insertingNoteRowIndex = undefined;
-        // TODO: This array should be optimized out.
-        let noteTops: number[] = [];
+        let insertingListTransform = undefined;
+        let insertingNoteHeight = undefined;
 
-        // The tops of notes are recorded when mouse down
-        if (noteRefs && noteRefs.current) {
-          let noteTopsInList = noteRefs.current.filter(
-            (item) => item.listId === colIndex
-          );
-          noteTopsInList.sort((a, b) => a.rowIndex - b.rowIndex);
-          noteTops = noteTopsInList.map((item) => item.top);
+        if (draggingState && draggingState.selectedListId === colIndex) {
+          selectedNoteTransform = draggingState.selectedNoteTransform;
+          selectedNoteRowIndex = draggingState.selectedRowIndex;
         }
 
-        if (draggingState && mousePos) {
-          // Update the list state when its inside note is being selected
-          if (draggingState.selectedListId === colIndex) {
-            selectedNoteRowIndex = draggingState.selectedRowIndex;
-
-            selectedNoteTransform = {
-              x: mousePos.x - draggingState.mouseDownX,
-              y: mousePos.y - draggingState.mouseDownY,
-              w: draggingState.w,
-              h: draggingState.h,
-            };
-          }
-
-          // Update the list state when there is a note being dragged onto itself.
-          if (draggingState.insertingListId === colIndex) {
-            insertingNoteRowIndex = draggingState.insertingRowIndex;
-            insertingNoteTransform = {
-              w: draggingState.w,
-              h: draggingState.h,
-              y: mousePos.y,
-              offset: draggingState.selectedNoteHeightWithGap,
-            };
-          }
+        if (
+          draggingState &&
+          draggingState.insertingListId === colIndex &&
+          draggingState.selectedNoteTransform
+        ) {
+          insertingListTransform = draggingState.insertingListTransform;
+          insertingNoteHeight = draggingState.selectedNoteTransform.h;
+          insertingNoteRowIndex = draggingState.insertingRowIndex;
         }
 
         const saveListRef = (element: HTMLElement | null) => {
@@ -355,12 +394,12 @@ const Grid = (props: { gridData: GridData }) => {
             key={colIndex}
             listId={colIndex}
             data={column}
-            noteTops={noteTops}
             onNoteSelected={handleMouseDown}
             selectedNoteRowIndex={selectedNoteRowIndex}
             selectedNoteTransform={selectedNoteTransform}
             insertingNoteRowIndex={insertingNoteRowIndex}
-            insertingNoteTransform={insertingNoteTransform}
+            insertingNoteHeight={insertingNoteHeight}
+            insertingListTransform={insertingListTransform}
           />
         );
       })}

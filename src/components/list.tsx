@@ -3,9 +3,6 @@ import { Note } from "../types";
 export interface ListInterface {
   listId: number;
   data: Note[];
-  // TODO: We should transform all the notes according to this array
-  noteTops: number[];
-  notePosTransform: { dx: number; dy: number };
   saveListRef: (element: HTMLElement | null) => void;
   saveNoteRef: (
     listId: number,
@@ -14,12 +11,11 @@ export interface ListInterface {
   ) => void;
   selectedNoteRowIndex: number | undefined;
   selectedNoteTransform:
-    | { x: number; y: number; w: number; h: number }
+    | { dx: number; dy: number; w: number; h: number }
     | undefined;
   insertingNoteRowIndex: number | undefined;
-  insertingNoteTransform:
-    | { w: number; h: number; y: number; offset: number }
-    | undefined;
+  insertingNoteHeight: number | undefined;
+  insertingListTransform: { dx: number; dy: number }[] | undefined;
   onNoteSelected: (
     ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
     activeItem: { listId: number; rowIndex: number }
@@ -46,51 +42,47 @@ const List = (props: ListInterface) => {
   let phDisplay = false;
   let phHeight = 0;
 
-  if (props.data.length === 1 && props.selectedNoteRowIndex !== undefined) {
+  if (props.data.length === 1 && props.selectedNoteRowIndex) {
     phDisplay = true;
   }
 
   if (
     props.insertingNoteRowIndex !== undefined &&
-    props.insertingNoteTransform != undefined
+    props.insertingNoteHeight !== undefined
   ) {
     phDisplay = true;
-    phHeight = props.insertingNoteTransform.h;
+    phHeight = props.insertingNoteHeight;
   }
 
   return (
     <div ref={props.saveListRef} className="list">
       {props.data.map((note, rowIndex) => {
         let transformStyle = {};
+        let transformData = undefined;
 
-        if (
-          props.selectedNoteRowIndex === rowIndex &&
-          props.selectedNoteTransform !== undefined
-        ) {
-          let parentOffsetY = 0;
-          if (props.noteTops) {
-            parentOffsetY = props.noteTops[rowIndex] - props.noteTops[0];
-          }
-          const ox = props.selectedNoteTransform.x;
-          const oy = props.selectedNoteTransform.y + parentOffsetY;
+        if (props.insertingListTransform)
+          transformData = props.insertingListTransform;
+
+        if (transformData) {
+          console.log("TransformData: ", rowIndex, transformData);
+          const oy = transformData[rowIndex] ? transformData[rowIndex].dy : 0;
           transformStyle = {
-            position: "absolute",
-            zIndex: 1,
-            width: `${props.selectedNoteTransform.w}px`,
-            transform: `translateX(${ox}px) translateY(${oy}px) scale(1)`,
+            transform: `translateY(${oy}px)`,
           };
         }
 
         if (
-          props.selectedNoteRowIndex !== rowIndex &&
-          props.insertingNoteRowIndex !== undefined &&
-          props.insertingNoteTransform !== undefined
+          props.selectedNoteRowIndex === rowIndex &&
+          props.selectedNoteTransform
         ) {
-          if (rowIndex > props.insertingNoteRowIndex) {
-            transformStyle = {
-              transform: `translateY(${props.insertingNoteTransform.offset}px)`,
-            };
-          }
+          const dx = props.selectedNoteTransform.dx;
+          const dy = props.selectedNoteTransform.dy;
+          transformStyle = {
+            position: "absolute",
+            zIndex: 1,
+            width: `${props.selectedNoteTransform.w}px`,
+            transform: `translateX(${dx}px) translateY(${dy}px) scale(1)`,
+          };
         }
 
         const saveNoteRef = (element: HTMLDivElement | null) => {

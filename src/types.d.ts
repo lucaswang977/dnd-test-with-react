@@ -10,17 +10,14 @@ export type DraggingStateType = {
   selectedListId: number;
   selectedRowIndex: number;
   selectedNoteHeightWithGap: number;
-  selectedListTransforming?: { dx: number; dy: number }[];
-  // Selected note's width and height when mouse pressed down
-  w: number;
-  h: number;
+  selectedNoteTransform?: { dx: number; dy: number; w: number; h: number };
   // The position when mouse clicked down
   mouseDownX: number;
   mouseDownY: number;
   // Inserting related state
   insertingListId?: number;
   insertingRowIndex?: number;
-  insertingListTransforming?: { dx: number; dy: number }[];
+  insertingListTransform?: { dx: number; dy: number }[];
 };
 
 export type NoteRef = {
