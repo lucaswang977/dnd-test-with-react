@@ -5,6 +5,13 @@ export type Note = {
 
 export type GridData = Note[][];
 
+export type MouseStateType = {
+  x: number;
+  y: number;
+  needRefresh: boolean;
+  pressed: boolean;
+};
+
 export type DraggingStateType = {
   // List is the vertical line, every list contains some notes.
   selectedListId: number;

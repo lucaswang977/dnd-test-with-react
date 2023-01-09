@@ -2,9 +2,10 @@
 // [x] We will store the refs of all the notes and update as they change.
 // [x] A note can be dragged in front of any note in other lists.
 // [x] Make the height of every list is different.
-// [ ] Separate List from Grid, update them individually.
+// [x] Separate List from Grid, update them individually.
+// [ ] Reduce the code density.
+// [ ] Unit testing on most of the code.
 // [ ] Add animating effect.
-// [ ] Reduce unnecessary rendering.
 // [ ] Write a blog on this implementation.
 //
 // Note:
@@ -20,8 +21,18 @@
 // * The key point is to never reset the source element's DOM position to avoid re-calculate
 //   the transform arguments.
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { GridData, DraggingStateType, NoteRef, ListRef } from "../types";
+// TODO: When we move a note multiple times, belowed notes are refreshed unintentionally.
+// TODO: If we have moved all the notes from the first list to another list, the last note
+// in the first list will act abnormally.
+
+import { useEffect, useState, useRef } from "react";
+import {
+  GridData,
+  MouseStateType,
+  DraggingStateType,
+  NoteRef,
+  ListRef,
+} from "../types";
 import List from "./list";
 
 const Grid = (props: { gridData: GridData }) => {
@@ -35,11 +46,11 @@ const Grid = (props: { gridData: GridData }) => {
   const listRefs = useRef<ListRef[]>([]);
 
   // It will be accessed in window's event handler
-  const [mousePos, _setMousePos] = useState<{ x: number; y: number }>();
-  const mousePosRef = useRef(mousePos);
-  const setMousePos = (pos: { x: number; y: number }) => {
-    mousePosRef.current = mousePos;
-    _setMousePos(pos);
+  const [mouseState, _setMouseState] = useState<MouseStateType>();
+  const mouseStateRef = useRef(mouseState);
+  const setMouseState = (mouseState: MouseStateType) => {
+    mouseStateRef.current = mouseState;
+    _setMouseState(mouseState);
   };
 
   // Utility functions
@@ -51,7 +62,71 @@ const Grid = (props: { gridData: GridData }) => {
 
   useEffect(() => {
     // When mouse is in dragging mode, we will do a lot of calculations here
-    if (!draggingState || !mousePos) return;
+    if (!draggingState || !mouseState) return;
+
+    if (
+      mouseState &&
+      mouseState.pressed === false &&
+      mouseState.needRefresh === true &&
+      draggingState &&
+      draggingState.insertingListId !== undefined &&
+      draggingState.insertingRowIndex !== undefined &&
+      draggingState.selectedListId !== undefined &&
+      draggingState.selectedRowIndex !== undefined
+    ) {
+      setGridState((gs) => {
+        const newGridState = gs.map((item) => {
+          return item.map((inside) => {
+            return { ...inside };
+          });
+        });
+        const note =
+          newGridState[draggingState.selectedListId][
+            draggingState.selectedRowIndex
+          ];
+
+        if (
+          draggingState &&
+          draggingState.insertingListId !== undefined &&
+          draggingState.insertingRowIndex !== undefined
+        ) {
+          // Remove the note from the selected list
+          const selectedList = [
+            ...newGridState[draggingState.selectedListId].slice(
+              0,
+              draggingState.selectedRowIndex
+            ),
+            ...newGridState[draggingState.selectedListId].slice(
+              draggingState.selectedRowIndex + 1
+            ),
+          ];
+          console.log("SelectedList:", selectedList, draggingState);
+
+          let insertingList = selectedList;
+          if (draggingState.selectedListId !== draggingState.insertingListId) {
+            insertingList = gs[draggingState.insertingListId];
+          }
+
+          // Insert into the new list
+          const insertedList = [
+            ...insertingList.slice(0, draggingState.insertingRowIndex),
+            note,
+            ...insertingList.slice(draggingState.insertingRowIndex),
+          ];
+          console.log("InsertedList:", insertedList, draggingState);
+
+          newGridState[draggingState.selectedListId] = selectedList;
+          newGridState[draggingState.insertingListId] = insertedList;
+        }
+        console.log("GridState:", newGridState, draggingState);
+
+        return newGridState;
+      });
+      setDraggingState(undefined);
+      setMouseState({ x: 0, y: 0, pressed: false, needRefresh: false });
+      return;
+    }
+
     setDraggingState((ds) => {
       if (ds === undefined || !listRefs.current) return ds;
 
@@ -73,9 +148,9 @@ const Grid = (props: { gridData: GridData }) => {
         dsModified.selectedNoteTransform
       ) {
         dsModified.selectedNoteTransform = {
-          dx: mousePos.x - ds.mouseDownX,
+          dx: mouseState.x - ds.mouseDownX,
           dy:
-            mousePos.y -
+            mouseState.y -
             ds.mouseDownY +
             (selectedNote.top - selectedListFirstNote.top),
           w: dsModified.selectedNoteTransform.w,
@@ -87,7 +162,10 @@ const Grid = (props: { gridData: GridData }) => {
       let targetList = listRefs.current.find(
         (list) =>
           list.listRef &&
-          isPosInRect(mousePos, list.listRef.getBoundingClientRect())
+          isPosInRect(
+            { x: mouseState.x, y: mouseState.y },
+            list.listRef.getBoundingClientRect()
+          )
       );
 
       // Calculate the transform data of the list which is being inserted.
@@ -160,14 +238,14 @@ const Grid = (props: { gridData: GridData }) => {
           const sp = tp + item.heightWithGap / 2;
           const bt = tp + item.heightWithGap;
 
-          if (mousePos.y <= sp && mousePos.y >= tp) {
+          if (mouseState.y <= sp && mouseState.y >= tp) {
             dsModified.insertingRowIndex = currentRowIndex;
-          } else if (mousePos.y <= bt && mousePos.y > sp) {
+          } else if (mouseState.y <= bt && mouseState.y > sp) {
             dsModified.insertingRowIndex = currentRowIndex + 1;
           }
           console.log(
             "4)",
-            mousePos.y,
+            mouseState.y,
             tp,
             sp,
             bt,
@@ -212,29 +290,41 @@ const Grid = (props: { gridData: GridData }) => {
 
       return dsModified;
     });
-  }, [mousePos]);
+  }, [mouseState]);
 
   const handleMouseUp = (ev: MouseEvent) => {
     console.log("MouseUp", ev.clientX, ev.clientY);
-    setMousePos({ x: ev.clientX, y: ev.clientY });
 
     window.removeEventListener("mouseup", handleMouseUp);
     window.removeEventListener("mousemove", handleMouseMove);
 
-    setDraggingState(undefined);
-
-    // TODO: Update the grid state according to the latest dragging state.
+    setMouseState({
+      x: ev.clientX,
+      y: ev.clientY,
+      needRefresh: true,
+      pressed: false,
+    });
   };
 
   const handleMouseMove = (ev: MouseEvent) => {
-    setMousePos({ x: ev.clientX, y: ev.clientY });
+    setMouseState({
+      needRefresh: false,
+      pressed: true, // FIX: this state is not quite reasonable.
+      x: ev.clientX,
+      y: ev.clientY,
+    });
   };
 
   const handleMouseDown = (
     ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
     selectedItem: { listId: number; rowIndex: number }
   ) => {
-    setMousePos({ x: ev.clientX, y: ev.clientY });
+    setMouseState({
+      x: ev.clientX,
+      y: ev.clientY,
+      needRefresh: false,
+      pressed: true,
+    });
 
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("mousemove", handleMouseMove);

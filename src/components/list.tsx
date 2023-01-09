@@ -64,7 +64,6 @@ const List = (props: ListInterface) => {
           transformData = props.insertingListTransform;
 
         if (transformData) {
-          console.log("TransformData: ", rowIndex, transformData);
           const oy = transformData[rowIndex] ? transformData[rowIndex].dy : 0;
           transformStyle = {
             transform: `translateY(${oy}px)`,
