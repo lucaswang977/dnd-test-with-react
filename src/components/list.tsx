@@ -2,7 +2,7 @@ import { Note } from "../types";
 
 export interface ListInterface {
   listId: number;
-  data: Note[];
+  gridData: Note[];
   saveListRef: (element: HTMLElement | null) => void;
   saveNoteRef: (
     listId: number,
@@ -42,7 +42,7 @@ const List = (props: ListInterface) => {
   let phDisplay = false;
   let phHeight = 0;
 
-  if (props.data.length === 1 && props.selectedNoteRowIndex) {
+  if (props.gridData.length === 1 && props.selectedNoteRowIndex) {
     phDisplay = true;
   }
 
@@ -56,7 +56,7 @@ const List = (props: ListInterface) => {
 
   return (
     <div ref={props.saveListRef} className="list">
-      {props.data.map((note, rowIndex) => {
+      {props.gridData.map((note, rowIndex) => {
         let transformStyle = {};
         let transformData = undefined;
 

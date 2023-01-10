@@ -176,16 +176,16 @@ const Grid = (props: { gridData: GridData }) => {
 
         // We have to clone all the data otherwise data stored in refs
         // could be corrupted.
-        let notesInInsertingList: NoteRef[] = [];
+        let notesInInsertingList1: NoteRef[] = [];
 
         noteRefs.current.forEach((item) => {
           if (targetList && item.listId === targetList.listId) {
-            notesInInsertingList.push({ ...item });
+            notesInInsertingList1.push({ ...item });
           }
         });
 
-        notesInInsertingList.sort((a, b) => a.rowIndex - b.rowIndex);
-        console.log("1)", notesInInsertingList);
+        notesInInsertingList1.sort((a, b) => a.rowIndex - b.rowIndex);
+        console.log("1)", notesInInsertingList1);
 
         // If this list is also the selected list, we have to firstly
         // change the top of some notes since one note has been removed
@@ -193,33 +193,35 @@ const Grid = (props: { gridData: GridData }) => {
 
         // We have a note selected, so we should first update all the belowed note's
         // position then remove it from this list.
+        let notesInInsertingList2: NoteRef[] = [];
         if (targetList.listId === ds.selectedListId) {
-          notesInInsertingList = notesInInsertingList.map(
-            (item, currentRowIndex) => {
-              if (currentRowIndex > ds.selectedRowIndex) {
-                item.top = item.top - ds.selectedNoteHeightWithGap;
-              }
-              return { ...item };
+          notesInInsertingList2 = notesInInsertingList1.map((item) => {
+            if (item.rowIndex > ds.selectedRowIndex) {
+              item.top = item.top - ds.selectedNoteHeightWithGap;
             }
-          );
+            return { ...item };
+          });
 
-          notesInInsertingList = notesInInsertingList.filter(
+          notesInInsertingList2 = notesInInsertingList2.filter(
             (item) => item.rowIndex !== ds.selectedRowIndex
           );
 
-          console.log("2)", notesInInsertingList);
+          console.log("2)", notesInInsertingList2);
         }
 
         // For later restore to this state
-        const notesStoredState: NoteRef[] = notesInInsertingList.map((item) => {
-          return { ...item };
-        });
+        const notesStoredState: NoteRef[] = notesInInsertingList2.map(
+          (item) => {
+            return { ...item };
+          }
+        );
         console.log("Stored: ", notesStoredState);
 
         // We have an inserting note, so we should update
         // all the belowed note's posistion, but not inserting the selected one.
+        let notesInInsertingList3: NoteRef[] = [];
         if (ds.insertingRowIndex !== undefined) {
-          notesInInsertingList = notesInInsertingList.map(
+          notesInInsertingList3 = notesInInsertingList2.map(
             (item, currentRowIndex) => {
               if (
                 ds.insertingRowIndex !== undefined &&
@@ -230,10 +232,10 @@ const Grid = (props: { gridData: GridData }) => {
             }
           );
         }
-        console.log("3)", notesInInsertingList);
+        console.log("3)", notesInInsertingList3);
 
         // Find the new inserting row index.
-        notesInInsertingList.map((item, currentRowIndex) => {
+        notesInInsertingList3.map((item, currentRowIndex) => {
           const tp = item.top;
           const sp = tp + item.heightWithGap / 2;
           const bt = tp + item.heightWithGap;
@@ -255,7 +257,7 @@ const Grid = (props: { gridData: GridData }) => {
 
         // Restore to stored state then insert
         if (dsModified.insertingRowIndex !== ds.insertingRowIndex) {
-          notesInInsertingList = notesStoredState.map(
+          notesInInsertingList3 = notesStoredState.map(
             (item, currentRowIndex) => {
               if (
                 ds.insertingRowIndex !== undefined &&
@@ -265,14 +267,14 @@ const Grid = (props: { gridData: GridData }) => {
               return { ...item };
             }
           );
+          console.log("5)", notesInInsertingList3);
         }
-        console.log("5)", notesInInsertingList);
 
         // Save the inserting list transform data for later rendering.
         const insertingListTransform: { dx: number; dy: number }[] = [];
         notesStoredState.map((item) => {
           let currentNoteTop = 0;
-          const currentNote = notesInInsertingList.find(
+          const currentNote = notesInInsertingList3.find(
             (i) => i.rowIndex == item.rowIndex
           );
 
@@ -483,7 +485,7 @@ const Grid = (props: { gridData: GridData }) => {
             saveNoteRef={saveNoteRef}
             key={colIndex}
             listId={colIndex}
-            data={column}
+            gridData={column}
             onNoteSelected={handleMouseDown}
             selectedNoteRowIndex={selectedNoteRowIndex}
             selectedNoteTransform={selectedNoteTransform}
