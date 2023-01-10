@@ -5,6 +5,7 @@
 // [x] Separate List from Grid, update them individually.
 // [ ] Reduce the code density.
 // [ ] Unit testing on most of the code.
+// [ ] Support touch gesture.
 // [ ] Add animating effect.
 // [ ] Write a blog on this implementation.
 //
@@ -20,9 +21,6 @@
 //   will also be set on all the belowed elements.
 // * The key point is to never reset the source element's DOM position to avoid re-calculate
 //   the transform arguments.
-
-// TODO: If we have moved all the notes from the first list to another list, the last note
-// in the first list will act abnormally.
 
 import { useEffect, useState, useRef } from "react";
 import {
@@ -121,6 +119,8 @@ const Grid = (props: { gridData: GridData }) => {
 
         return newGridState;
       });
+      noteRefs.current = [];
+      listRefs.current = [];
       setDraggingState(undefined);
       setMouseState({ x: 0, y: 0, pressed: false, needRefresh: false });
       return;
@@ -395,7 +395,8 @@ const Grid = (props: { gridData: GridData }) => {
       ev.clientX,
       ev.clientY,
       selectedItem,
-      insertingListTransformData
+      insertingListTransformData,
+      noteRefs
     );
     setDraggingState({
       selectedListId: selectedItem.listId,
