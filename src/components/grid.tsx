@@ -32,6 +32,44 @@ import {
 } from "../types";
 import List from "./list";
 
+type TopHeight = { top: number; height: number };
+
+// Input: index=0, items=[{160,144}, {304,288}, {592,168}]
+// Output: [{160, 288}, {448, 168}]
+const removeItemFromList = (index: number, items: TopHeight[]): TopHeight[] => {
+  if (!items || items.length === 0 || !items[index]) return [];
+
+  const newItems: TopHeight[] = [];
+  items.forEach((item, row) => {
+    if (row > index)
+      newItems.push({ ...item, top: item.top - items[index].height });
+    else if (row < index) newItems.push({ ...item });
+  });
+  return newItems;
+};
+
+// Input: index=0, height=144, items=[{160,288},{448,168}]
+// Output: [{304,288},{592,168}]
+//
+// Input: index=1, height=144, items=[{160, 288}, {448, 168}]
+// Output: [{160,288},{592,168}]
+const calcInsertingState = (
+  index: number,
+  height: number,
+  items: TopHeight[]
+): TopHeight[] => {
+  return [];
+};
+
+// Input: inserting={480, 144}, items=[{304,288},{592,168}]
+// Output: 1
+const calcInsertingIndex = (
+  inserting: TopHeight,
+  items: TopHeight[]
+): number => {
+  return 0;
+};
+
 const Grid = (props: { gridData: GridData }) => {
   const [gridState, setGridState] = useState(props.gridData);
   const [draggingState, setDraggingState] = useState<
@@ -61,6 +99,7 @@ const Grid = (props: { gridData: GridData }) => {
     // When mouse is in dragging mode, we will do a lot of calculations here
     if (!draggingState || !mouseState) return;
 
+    // Check if we need to refresh the grid data
     if (
       mouseState &&
       mouseState.pressed === false &&
