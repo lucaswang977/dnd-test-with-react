@@ -15,7 +15,7 @@ export interface ListInterface {
     | undefined;
   insertingNoteRowIndex: number | undefined;
   insertingNoteHeight: number | undefined;
-  insertingListTransform: { dx: number; dy: number }[] | undefined;
+  insertingListYAxisTransform: number[] | undefined;
   onNoteSelected: (
     ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
     activeItem: { listId: number; rowIndex: number }
@@ -58,13 +58,10 @@ const List = (props: ListInterface) => {
     <div ref={props.saveListRef} className="list">
       {props.gridData.map((note, rowIndex) => {
         let transformStyle = {};
-        let transformData = undefined;
-
-        if (props.insertingListTransform)
-          transformData = props.insertingListTransform;
+        let transformData = props.insertingListYAxisTransform;
 
         if (transformData) {
-          const oy = transformData[rowIndex] ? transformData[rowIndex].dy : 0;
+          const oy = transformData[rowIndex];
           transformStyle = {
             transform: `translateY(${oy}px)`,
           };

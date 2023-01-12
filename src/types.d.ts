@@ -24,7 +24,7 @@ export type DraggingStateType = {
   // Inserting related state
   insertingListId?: number;
   insertingRowIndex?: number;
-  insertingListTransform?: { dx: number; dy: number }[];
+  insertingListYAxisTransform?: number[];
 };
 
 export type NoteRef = {
