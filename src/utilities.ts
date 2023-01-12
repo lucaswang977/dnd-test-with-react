@@ -1,4 +1,4 @@
-export type TopHeight = { id: number; top: number; height: number };
+import { TopHeight } from "./types";
 
 // To remove one element from the list, meanwhile change
 // the position of belowed elements.

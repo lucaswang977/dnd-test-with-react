@@ -39,3 +39,5 @@ export type ListRef = {
   listId: number;
   listRef: HTMLElement | null;
 };
+
+export type TopHeight = { id: number; top: number; height: number };

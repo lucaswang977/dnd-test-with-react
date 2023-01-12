@@ -1,8 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 
 import { isPosInRect } from "../utilities";
+import { TopHeight } from "../types";
 import {
-  TopHeight,
   removeItemFromTopHeightList,
   insertItemIntoTopHeightList,
   findInsertingIndexFromTopHeightList,
