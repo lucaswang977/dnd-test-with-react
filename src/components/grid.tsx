@@ -59,7 +59,10 @@ const Grid = (props: { gridData: GridData }) => {
   const [mousePos, mousePressed] = useMouse();
 
   useEffect(() => {
-    // Check if we need to refresh the grid data
+    // We do two things when mousedown is triggered:
+    // * Save all the top/height(with gap) for later calculation on dragging state.
+    // * Calculate the inserting(selected) note's height plus gap by
+    //   finding the belowed note's top position minus itself's top position.
     if (
       mousePos &&
       mousePressed &&
@@ -77,17 +80,18 @@ const Grid = (props: { gridData: GridData }) => {
         let selectedListFirstNoteTop = 0;
         let insertingListTransformData: number[] = [];
 
-        // We do two things when mousedown is triggered:
-        // * Save all the top/height(with gap) for later calculation on dragging state.
-        // * Calculate the inserting(selected) note's height plus gap by
-        //   finding the belowed note's top position minus itself's top position.
         noteRefs.current.forEach((item) => {
           // Save all the tops in refs array
           if (item.noteRef) {
-            item.top = item.noteRef.getBoundingClientRect().top;
-            item.left = item.noteRef.getBoundingClientRect().left;
-            item.height = item.noteRef.getBoundingClientRect().height;
-            item.width = item.noteRef.getBoundingClientRect().width;
+            const rect = item.noteRef.getBoundingClientRect();
+            item.rect = {
+              top: rect.top,
+              bottom: rect.bottom,
+              left: rect.left,
+              height: rect.height,
+              width: rect.width,
+              gap: 0,
+            };
 
             // When selected item is the last one, we use list's bottom as
             // the belowed note's top.
@@ -104,14 +108,14 @@ const Grid = (props: { gridData: GridData }) => {
               if (lr) nextTop = lr.getBoundingClientRect().bottom;
             }
 
-            item.gap = nextTop - item.top - item.height;
+            item.rect.gap = nextTop - item.rect.bottom;
 
             if (
               selectedItem &&
               item.rowIndex === 0 &&
               item.listId === selectedItem.listId
             )
-              selectedListFirstNoteTop = item.top;
+              selectedListFirstNoteTop = item.rect.top;
           }
         });
 
@@ -122,19 +126,13 @@ const Grid = (props: { gridData: GridData }) => {
             item.rowIndex > selectedItem.rowIndex
           )
             insertingListTransformData[item.rowIndex] =
-              selectedItem.height + selectedItem.gap;
+              selectedItem.rect.height + selectedItem.rect.gap;
         });
 
         setDraggingState({
           selectedListId: selectedItem.listId,
           selectedRowIndex: selectedItem.rowIndex,
-          selectedNoteHeightWithGap: selectedItem.height + selectedItem.gap,
-          selectedNoteTransform: {
-            dx: 0,
-            dy: selectedItem.top - selectedListFirstNoteTop,
-            w: selectedItem.width,
-            h: selectedItem.height,
-          },
+          selectedRect: selectedItem.rect,
           mouseDownX: mousePos.x,
           mouseDownY: mousePos.y,
           insertingListId: selectedItem.listId,
@@ -143,6 +141,8 @@ const Grid = (props: { gridData: GridData }) => {
         });
       }
     } else if (
+      // When mouse is up, current state is checked to see if we should update
+      // the grid data in order to update the entire grid state.
       mousePos &&
       mousePressed === false &&
       draggingState &&
@@ -207,8 +207,9 @@ const Grid = (props: { gridData: GridData }) => {
     }
   }, [mousePressed]);
 
+  // When mouse is in dragging mode, we will update the visually state by
+  // calculating out all the temporary state.
   useEffect(() => {
-    // When mouse is in dragging mode, we will do a lot of calculations here
     if (!draggingState || !mousePos) return;
 
     setDraggingState((ds) => {
@@ -229,24 +230,21 @@ const Grid = (props: { gridData: GridData }) => {
       let selectedNoteTop = 0;
       let selectedNoteHeight = 0;
 
-      if (
-        selectedNote &&
-        selectedListFirstNote &&
-        dsModified.selectedNoteTransform
-      ) {
-        dsModified.selectedNoteTransform = {
-          dx: mousePos.x - ds.mouseDownX,
-          dy:
+      if (selectedNote && selectedListFirstNote) {
+        dsModified.selectedRect = {
+          ...ds.selectedRect,
+          left: mousePos.x - ds.mouseDownX,
+          top:
             mousePos.y -
             ds.mouseDownY +
-            (selectedNote.top - selectedListFirstNote.top),
-          w: dsModified.selectedNoteTransform.w,
-          h: dsModified.selectedNoteTransform.h,
+            (selectedNote.rect.top - selectedListFirstNote.rect.top),
+          width: dsModified.selectedNoteTransform.w,
+          height: dsModified.selectedNoteTransform.h,
         };
 
         if (selectedNote.noteRef) {
           selectedNoteTop = selectedNote.noteRef.getBoundingClientRect().y;
-          selectedNoteHeight = selectedNote.height + selectedNote.gap;
+          selectedNoteHeight = selectedNote.rect.height + selectedNote.rect.gap;
         }
       }
 
@@ -272,8 +270,8 @@ const Grid = (props: { gridData: GridData }) => {
           if (targetList && item.listId === targetList.listId) {
             topHeightList.push({
               id: item.rowIndex,
-              top: item.top,
-              height: item.height + item.gap,
+              top: item.rect.top,
+              height: item.rect.height + item.rect.gap,
             });
           }
         });
@@ -343,38 +341,25 @@ const Grid = (props: { gridData: GridData }) => {
   return (
     <div className="grid">
       {gridState.map((column, colIndex) => {
-        let selectedNoteRowIndex = undefined;
-        let selectedNoteTransform = undefined;
-        let insertingNoteRowIndex = undefined;
-        let insertingListTransform = undefined;
-        let insertingNoteHeight = undefined;
+        let placeholderHeight = undefined;
+        let transformStyles = undefined;
 
         if (draggingState && draggingState.selectedListId === colIndex) {
-          selectedNoteTransform = draggingState.selectedNoteTransform;
-          selectedNoteRowIndex = draggingState.selectedRowIndex;
+          placeholderHeight = draggingState.placeholderHeight;
+          transformStyles = draggingState.transformStyles[colIndex];
         }
 
-        if (
-          draggingState &&
-          draggingState.insertingListId === colIndex &&
-          draggingState.selectedNoteTransform
-        ) {
-          insertingListTransform = draggingState.insertingListYAxisTransform;
-          insertingNoteHeight = draggingState.selectedNoteTransform.h;
-          insertingNoteRowIndex = draggingState.insertingRowIndex;
-        }
-
-        const saveListRef = (element: HTMLElement | null) => {
+        const saveListRef = (listId: number, element: HTMLElement | null) => {
           if (listRefs.current && element) {
             let alreadyCreated = false;
             listRefs.current.map((item) => {
-              if (item.listId === colIndex) {
+              if (item.listId === listId) {
                 alreadyCreated = true;
                 item.listRef = element;
               }
             });
             if (!alreadyCreated) {
-              listRefs.current.push({ listId: colIndex, listRef: element });
+              listRefs.current.push({ listId: listId, listRef: element });
             }
           }
         };
@@ -396,11 +381,14 @@ const Grid = (props: { gridData: GridData }) => {
                 rowIndex: rowIndex,
                 listId: listId,
                 noteRef: element,
-                top: 0,
-                left: 0,
-                gap: 0,
-                width: 0,
-                height: 0,
+                rect: {
+                  top: 0,
+                  bottom: 0,
+                  height: 0,
+                  left: 0,
+                  width: 0,
+                  gap: 0,
+                },
               });
             }
           }
@@ -408,16 +396,13 @@ const Grid = (props: { gridData: GridData }) => {
 
         return (
           <List
-            saveListRef={saveListRef}
-            saveNoteRef={saveNoteRef}
+            onSaveListRef={saveListRef}
+            onSaveNoteRef={saveNoteRef}
             key={colIndex}
             listId={colIndex}
             gridData={column}
-            selectedNoteRowIndex={selectedNoteRowIndex}
-            selectedNoteTransform={selectedNoteTransform}
-            insertingNoteRowIndex={insertingNoteRowIndex}
-            insertingNoteHeight={insertingNoteHeight}
-            insertingListYAxisTransform={insertingListTransform}
+            transformStyles={transformStyles}
+            placeholderHeight={placeholderHeight}
           />
         );
       })}

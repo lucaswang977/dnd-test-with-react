@@ -1,21 +1,17 @@
+import { CSSProperties } from "react";
 import { Note } from "../types";
 
 export interface ListInterface {
   listId: number;
   gridData: Note[];
-  saveListRef: (element: HTMLElement | null) => void;
-  saveNoteRef: (
+  onSaveListRef: (listId: number, element: HTMLElement | null) => void;
+  onSaveNoteRef: (
     listId: number,
     rowIndex: number,
     element: HTMLElement | null
   ) => void;
-  selectedNoteRowIndex: number | undefined;
-  selectedNoteTransform:
-    | { dx: number; dy: number; w: number; h: number }
-    | undefined;
-  insertingNoteRowIndex: number | undefined;
-  insertingNoteHeight: number | undefined;
-  insertingListYAxisTransform: number[] | undefined;
+  transformStyles: CSSProperties[] | undefined;
+  placeholderHeight: number | undefined;
 }
 
 const NotePlaceholder = (props: { display: boolean; height: number }) => {
@@ -38,48 +34,47 @@ const List = (props: ListInterface) => {
   let phDisplay = false;
   let phHeight = 0;
 
-  if (props.gridData.length === 1 && props.selectedNoteRowIndex) {
+  // if (props.gridData.length === 1 && props.selectedNoteRowIndex) {
+  //   phDisplay = true;
+  // }
+
+  if (props.placeholderHeight !== undefined) {
     phDisplay = true;
+    phHeight = props.placeholderHeight;
   }
 
-  if (
-    props.insertingNoteRowIndex !== undefined &&
-    props.insertingNoteHeight !== undefined
-  ) {
-    phDisplay = true;
-    phHeight = props.insertingNoteHeight;
-  }
+  const saveListRef = (element: HTMLDivElement | null) => {
+    if (element) props.onSaveListRef(props.listId, element);
+  };
 
   return (
-    <div ref={props.saveListRef} className="list">
+    <div ref={saveListRef} className="list">
       {props.gridData.map((note, rowIndex) => {
-        let transformStyle = {};
-        let transformData = props.insertingListYAxisTransform;
+        let transformStyle = props.transformStyles[rowIndex];
 
-        if (transformData) {
-          const oy = transformData[rowIndex];
-          transformStyle = {
-            transform: `translateY(${oy}px)`,
-          };
-        }
+        // if (transformData.height !== undefined)
+        //   transformStyle.height = transformData.height;
+        // transformStyle = {
+        //   transform: `translateY(${oy}px)`,
+        // };
 
-        if (
-          props.selectedNoteRowIndex === rowIndex &&
-          props.selectedNoteTransform
-        ) {
-          const dx = props.selectedNoteTransform.dx;
-          const dy = props.selectedNoteTransform.dy;
-          transformStyle = {
-            position: "absolute",
-            zIndex: 1,
-            width: `${props.selectedNoteTransform.w}px`,
-            transform: `translateX(${dx}px) translateY(${dy}px) scale(1.02)`,
-          };
-        }
+        // if (
+        //   props.selectedNoteRowIndex === rowIndex &&
+        //   props.selectedNoteTransform
+        // ) {
+        //   const dx = props.selectedNoteTransform.dx;
+        //   const dy = props.selectedNoteTransform.dy;
+        //   transformStyle = {
+        //     position: "absolute",
+        //     zIndex: 1,
+        //     width: `${props.selectedNoteTransform.w}px`,
+        //     transform: `translateX(${dx}px) translateY(${dy}px) scale(1.02)`,
+        //   };
+        // }
 
         const saveNoteRef = (element: HTMLDivElement | null) => {
           if (element) {
-            props.saveNoteRef(props.listId, rowIndex, element);
+            props.onSaveNoteRef(props.listId, rowIndex, element);
           }
         };
         return (
