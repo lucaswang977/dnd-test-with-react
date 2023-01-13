@@ -16,10 +16,6 @@ export interface ListInterface {
   insertingNoteRowIndex: number | undefined;
   insertingNoteHeight: number | undefined;
   insertingListYAxisTransform: number[] | undefined;
-  onNoteSelected: (
-    ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
-    activeItem: { listId: number; rowIndex: number }
-  ) => void;
 }
 
 const NotePlaceholder = (props: { display: boolean; height: number }) => {
@@ -92,12 +88,6 @@ const List = (props: ListInterface) => {
             key={note.id}
             className="note"
             style={transformStyle}
-            onMouseDown={(ev) => {
-              props.onNoteSelected(ev, {
-                listId: props.listId,
-                rowIndex: rowIndex,
-              });
-            }}
           >
             <p>Item {note.id + 1}</p>
             <p className="text">{note.text}</p>

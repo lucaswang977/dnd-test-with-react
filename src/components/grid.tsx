@@ -6,7 +6,7 @@
 // [x] Unit testing on most of the code.
 // [x] Abstract the core data structure to separated file and be unit tested.
 // [x] Separate grid data refresh state from mouse state.
-// [ ] Mouse down event should be captured outside the list component.
+// [x] Mouse down event should be captured outside the list component.
 // [ ] Use more custom hooks to reduce the single file size.
 // [ ] Support touch gesture.
 // [ ] Test framework moves to Vitest.
@@ -59,8 +59,112 @@ const Grid = (props: { gridData: GridData }) => {
   const [mousePressed, setMousePressed] = useState<boolean>(false);
 
   useEffect(() => {
+    window.addEventListener("mousedown", handleMouseDown);
+    return () => {
+      window.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, []);
+
+  useEffect(() => {
     // Check if we need to refresh the grid data
     if (
+      mousePos &&
+      mousePressed &&
+      noteRefs.current &&
+      draggingState === undefined
+    ) {
+      console.log("MouseDown", mousePos);
+      let selectedItem = noteRefs.current.find((item) =>
+        item.noteRef
+          ? isPosInRect(mousePos, item.noteRef.getBoundingClientRect())
+          : false
+      );
+
+      if (selectedItem) {
+        let selectedNoteWidth = 0;
+        let selectedNoteHeight = 0;
+        let selectedNoteTop = 0;
+        let selectedNoteHeightWithGap = 0;
+        let selectedListFirstNoteTop = 0;
+        let insertingListTransformData: number[] = [];
+
+        // We do two things when mousedown is triggered:
+        // * Save all the top/height(with gap) for later calculation on dragging state.
+        // * Calculate the inserting(selected) note's height plus gap by
+        //   finding the belowed note's top position minus itself's top position.
+        if (noteRefs.current) {
+          noteRefs.current.forEach((item) => {
+            // Save all the tops in refs array
+            if (item.noteRef) {
+              item.top = item.noteRef.getBoundingClientRect().top;
+
+              // When selected item is the last one, we use list's bottom as
+              // the belowed note's top.
+              let nextTop = 0;
+              const nextItem = noteRefs.current.find(
+                (comparingItem) =>
+                  comparingItem.listId === item.listId &&
+                  comparingItem.rowIndex === item.rowIndex + 1
+              );
+              if (nextItem !== undefined && nextItem.noteRef)
+                nextTop = nextItem.noteRef.getBoundingClientRect().top;
+              else {
+                const lr = listRefs.current[item.listId].listRef;
+                if (lr) nextTop = lr.getBoundingClientRect().bottom;
+              }
+
+              item.heightWithGap = nextTop - item.top;
+
+              if (
+                selectedItem &&
+                item.rowIndex === selectedItem.rowIndex &&
+                item.listId === selectedItem.listId
+              ) {
+                selectedNoteWidth = item.noteRef.getBoundingClientRect().width;
+                selectedNoteHeight =
+                  item.noteRef.getBoundingClientRect().height;
+                selectedNoteHeightWithGap = item.heightWithGap;
+                selectedNoteTop = item.top;
+              }
+
+              if (
+                selectedItem &&
+                item.rowIndex === 0 &&
+                item.listId === selectedItem.listId
+              )
+                selectedListFirstNoteTop = item.top;
+            }
+          });
+
+          noteRefs.current.forEach((item) => {
+            if (
+              selectedItem &&
+              item.listId === selectedItem.listId &&
+              item.rowIndex > selectedItem.rowIndex
+            )
+              insertingListTransformData[item.rowIndex] =
+                selectedNoteHeightWithGap;
+          });
+        }
+
+        setDraggingState({
+          selectedListId: selectedItem.listId,
+          selectedRowIndex: selectedItem.rowIndex,
+          selectedNoteHeightWithGap: selectedNoteHeightWithGap,
+          selectedNoteTransform: {
+            dx: 0,
+            dy: selectedNoteTop - selectedListFirstNoteTop,
+            w: selectedNoteWidth,
+            h: selectedNoteHeight,
+          },
+          mouseDownX: mousePos.x,
+          mouseDownY: mousePos.y,
+          insertingListId: selectedItem.listId,
+          insertingRowIndex: selectedItem.rowIndex,
+          insertingListYAxisTransform: insertingListTransformData,
+        });
+      }
+    } else if (
       mousePos &&
       mousePressed === false &&
       draggingState &&
@@ -69,6 +173,7 @@ const Grid = (props: { gridData: GridData }) => {
       draggingState.selectedListId !== undefined &&
       draggingState.selectedRowIndex !== undefined
     ) {
+      console.log("MouseUp", mousePos);
       setGridState((gs) => {
         const newGridState = gs.map((item) => {
           return item.map((inside) => {
@@ -257,9 +362,7 @@ const Grid = (props: { gridData: GridData }) => {
     });
   }, [mousePos]);
 
-  const handleMouseUp = (ev: MouseEvent) => {
-    console.log("MouseUp", ev.clientX, ev.clientY);
-
+  const handleMouseUp = () => {
     window.removeEventListener("mouseup", handleMouseUp);
     window.removeEventListener("mousemove", handleMouseMove);
 
@@ -273,96 +376,15 @@ const Grid = (props: { gridData: GridData }) => {
     });
   };
 
-  const handleMouseDown = (
-    ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
-    selectedItem: { listId: number; rowIndex: number }
-  ) => {
-    setMousePressed(true);
-
+  const handleMouseDown = (ev: MouseEvent) => {
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("mousemove", handleMouseMove);
 
-    let selectedNoteWidth = 0;
-    let selectedNoteHeight = 0;
-    let selectedNoteTop = 0;
-    let selectedNoteHeightWithGap = 0;
-    let selectedListFirstNoteTop = 0;
-    let insertingListTransformData: number[] = [];
-
-    // We do two things when mousedown is triggered:
-    // * Save all the top/height(with gap) for later calculation on dragging state.
-    // * Calculate the inserting(selected) note's height plus gap by
-    //   finding the belowed note's top position minus itself's top position.
-    if (noteRefs && noteRefs.current) {
-      noteRefs.current.forEach((item) => {
-        // Save all the tops in refs array
-        if (item.noteRef) {
-          item.top = item.noteRef.getBoundingClientRect().top;
-
-          // When selected item is the last one, we use list's bottom as
-          // the belowed note's top.
-          let nextTop = 0;
-          const nextItem = noteRefs.current.find(
-            (comparingItem) =>
-              comparingItem.listId === item.listId &&
-              comparingItem.rowIndex === item.rowIndex + 1
-          );
-          if (nextItem !== undefined && nextItem.noteRef)
-            nextTop = nextItem.noteRef.getBoundingClientRect().top;
-          else {
-            const lr = listRefs.current[item.listId].listRef;
-            if (lr) nextTop = lr.getBoundingClientRect().bottom;
-          }
-
-          item.heightWithGap = nextTop - item.top;
-
-          if (
-            item.rowIndex === selectedItem.rowIndex &&
-            item.listId === selectedItem.listId
-          ) {
-            selectedNoteWidth = item.noteRef.getBoundingClientRect().width;
-            selectedNoteHeight = item.noteRef.getBoundingClientRect().height;
-            selectedNoteHeightWithGap = item.heightWithGap;
-            selectedNoteTop = item.top;
-          }
-
-          if (item.rowIndex === 0 && item.listId === selectedItem.listId)
-            selectedListFirstNoteTop = item.top;
-        }
-      });
-
-      noteRefs.current.forEach((item) => {
-        if (
-          item.listId === selectedItem.listId &&
-          item.rowIndex > selectedItem.rowIndex
-        )
-          insertingListTransformData[item.rowIndex] = selectedNoteHeightWithGap;
-      });
-    }
-    console.log(
-      "MouseDown",
-      ev.clientX,
-      ev.clientY,
-      selectedItem,
-      insertingListTransformData,
-      noteRefs
-    );
-    setDraggingState({
-      selectedListId: selectedItem.listId,
-      selectedRowIndex: selectedItem.rowIndex,
-      selectedNoteHeightWithGap: selectedNoteHeightWithGap,
-      selectedNoteTransform: {
-        dx: 0,
-        dy: selectedNoteTop - selectedListFirstNoteTop,
-        w: selectedNoteWidth,
-        h: selectedNoteHeight,
-      },
-      mouseDownX: ev.clientX,
-      mouseDownY: ev.clientY,
-      insertingListId: selectedItem.listId,
-      insertingRowIndex: selectedItem.rowIndex,
-      insertingListYAxisTransform: insertingListTransformData,
+    setMousePos({
+      x: ev.clientX,
+      y: ev.clientY,
     });
+    setMousePressed(true);
   };
 
   return (
@@ -435,7 +457,6 @@ const Grid = (props: { gridData: GridData }) => {
             key={colIndex}
             listId={colIndex}
             gridData={column}
-            onNoteSelected={handleMouseDown}
             selectedNoteRowIndex={selectedNoteRowIndex}
             selectedNoteTransform={selectedNoteTransform}
             insertingNoteRowIndex={insertingNoteRowIndex}
