@@ -7,7 +7,8 @@
 // [x] Abstract the core data structure to separated file and be unit tested.
 // [x] Separate grid data refresh state from mouse state.
 // [x] Mouse down event should be captured outside the list component.
-// [ ] Use more custom hooks to reduce the single file size.
+// [x] Separate mouse event to a custom hook.
+// [ ] Reduce grid file size by removing unnecessary states / calcs.
 // [ ] Support touch gesture.
 // [ ] Test framework moves to Vitest.
 // [ ] Add animating effect.
@@ -27,11 +28,11 @@
 //   the transform arguments.
 
 import { useEffect, useState, useRef } from "react";
+import { useMouse } from "../hooks/mouse";
 import List from "./list";
 
 import {
   GridData,
-  MousePosType,
   DraggingStateType,
   NoteRef,
   ListRef,
@@ -55,15 +56,7 @@ const Grid = (props: { gridData: GridData }) => {
   const noteRefs = useRef<NoteRef[]>([]);
   const listRefs = useRef<ListRef[]>([]);
 
-  const [mousePos, setMousePos] = useState<MousePosType>();
-  const [mousePressed, setMousePressed] = useState<boolean>(false);
-
-  useEffect(() => {
-    window.addEventListener("mousedown", handleMouseDown);
-    return () => {
-      window.removeEventListener("mousedown", handleMouseDown);
-    };
-  }, []);
+  const [mousePos, mousePressed] = useMouse();
 
   useEffect(() => {
     // Check if we need to refresh the grid data
@@ -81,10 +74,6 @@ const Grid = (props: { gridData: GridData }) => {
       );
 
       if (selectedItem) {
-        let selectedNoteWidth = 0;
-        let selectedNoteHeight = 0;
-        let selectedNoteTop = 0;
-        let selectedNoteHeightWithGap = 0;
         let selectedListFirstNoteTop = 0;
         let insertingListTransformData: number[] = [];
 
@@ -92,70 +81,59 @@ const Grid = (props: { gridData: GridData }) => {
         // * Save all the top/height(with gap) for later calculation on dragging state.
         // * Calculate the inserting(selected) note's height plus gap by
         //   finding the belowed note's top position minus itself's top position.
-        if (noteRefs.current) {
-          noteRefs.current.forEach((item) => {
-            // Save all the tops in refs array
-            if (item.noteRef) {
-              item.top = item.noteRef.getBoundingClientRect().top;
+        noteRefs.current.forEach((item) => {
+          // Save all the tops in refs array
+          if (item.noteRef) {
+            item.top = item.noteRef.getBoundingClientRect().top;
+            item.left = item.noteRef.getBoundingClientRect().left;
+            item.height = item.noteRef.getBoundingClientRect().height;
+            item.width = item.noteRef.getBoundingClientRect().width;
 
-              // When selected item is the last one, we use list's bottom as
-              // the belowed note's top.
-              let nextTop = 0;
-              const nextItem = noteRefs.current.find(
-                (comparingItem) =>
-                  comparingItem.listId === item.listId &&
-                  comparingItem.rowIndex === item.rowIndex + 1
-              );
-              if (nextItem !== undefined && nextItem.noteRef)
-                nextTop = nextItem.noteRef.getBoundingClientRect().top;
-              else {
-                const lr = listRefs.current[item.listId].listRef;
-                if (lr) nextTop = lr.getBoundingClientRect().bottom;
-              }
-
-              item.heightWithGap = nextTop - item.top;
-
-              if (
-                selectedItem &&
-                item.rowIndex === selectedItem.rowIndex &&
-                item.listId === selectedItem.listId
-              ) {
-                selectedNoteWidth = item.noteRef.getBoundingClientRect().width;
-                selectedNoteHeight =
-                  item.noteRef.getBoundingClientRect().height;
-                selectedNoteHeightWithGap = item.heightWithGap;
-                selectedNoteTop = item.top;
-              }
-
-              if (
-                selectedItem &&
-                item.rowIndex === 0 &&
-                item.listId === selectedItem.listId
-              )
-                selectedListFirstNoteTop = item.top;
+            // When selected item is the last one, we use list's bottom as
+            // the belowed note's top.
+            let nextTop = 0;
+            const nextItem = noteRefs.current.find(
+              (comparingItem) =>
+                comparingItem.listId === item.listId &&
+                comparingItem.rowIndex === item.rowIndex + 1
+            );
+            if (nextItem !== undefined && nextItem.noteRef)
+              nextTop = nextItem.noteRef.getBoundingClientRect().top;
+            else {
+              const lr = listRefs.current[item.listId].listRef;
+              if (lr) nextTop = lr.getBoundingClientRect().bottom;
             }
-          });
 
-          noteRefs.current.forEach((item) => {
+            item.gap = nextTop - item.top - item.height;
+
             if (
               selectedItem &&
-              item.listId === selectedItem.listId &&
-              item.rowIndex > selectedItem.rowIndex
+              item.rowIndex === 0 &&
+              item.listId === selectedItem.listId
             )
-              insertingListTransformData[item.rowIndex] =
-                selectedNoteHeightWithGap;
-          });
-        }
+              selectedListFirstNoteTop = item.top;
+          }
+        });
+
+        noteRefs.current.forEach((item) => {
+          if (
+            selectedItem &&
+            item.listId === selectedItem.listId &&
+            item.rowIndex > selectedItem.rowIndex
+          )
+            insertingListTransformData[item.rowIndex] =
+              selectedItem.height + selectedItem.gap;
+        });
 
         setDraggingState({
           selectedListId: selectedItem.listId,
           selectedRowIndex: selectedItem.rowIndex,
-          selectedNoteHeightWithGap: selectedNoteHeightWithGap,
+          selectedNoteHeightWithGap: selectedItem.height + selectedItem.gap,
           selectedNoteTransform: {
             dx: 0,
-            dy: selectedNoteTop - selectedListFirstNoteTop,
-            w: selectedNoteWidth,
-            h: selectedNoteHeight,
+            dy: selectedItem.top - selectedListFirstNoteTop,
+            w: selectedItem.width,
+            h: selectedItem.height,
           },
           mouseDownX: mousePos.x,
           mouseDownY: mousePos.y,
@@ -268,7 +246,7 @@ const Grid = (props: { gridData: GridData }) => {
 
         if (selectedNote.noteRef) {
           selectedNoteTop = selectedNote.noteRef.getBoundingClientRect().y;
-          selectedNoteHeight = selectedNote.heightWithGap;
+          selectedNoteHeight = selectedNote.height + selectedNote.gap;
         }
       }
 
@@ -295,7 +273,7 @@ const Grid = (props: { gridData: GridData }) => {
             topHeightList.push({
               id: item.rowIndex,
               top: item.top,
-              height: item.heightWithGap,
+              height: item.height + item.gap,
             });
           }
         });
@@ -362,31 +340,6 @@ const Grid = (props: { gridData: GridData }) => {
     });
   }, [mousePos]);
 
-  const handleMouseUp = () => {
-    window.removeEventListener("mouseup", handleMouseUp);
-    window.removeEventListener("mousemove", handleMouseMove);
-
-    setMousePressed(false);
-  };
-
-  const handleMouseMove = (ev: MouseEvent) => {
-    setMousePos({
-      x: ev.clientX,
-      y: ev.clientY,
-    });
-  };
-
-  const handleMouseDown = (ev: MouseEvent) => {
-    window.addEventListener("mouseup", handleMouseUp);
-    window.addEventListener("mousemove", handleMouseMove);
-
-    setMousePos({
-      x: ev.clientX,
-      y: ev.clientY,
-    });
-    setMousePressed(true);
-  };
-
   return (
     <div className="grid">
       {gridState.map((column, colIndex) => {
@@ -444,7 +397,10 @@ const Grid = (props: { gridData: GridData }) => {
                 listId: listId,
                 noteRef: element,
                 top: 0,
-                heightWithGap: 0,
+                left: 0,
+                gap: 0,
+                width: 0,
+                height: 0,
               });
             }
           }

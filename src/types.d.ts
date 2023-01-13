@@ -29,7 +29,10 @@ export type NoteRef = {
   rowIndex: number;
   listId: number;
   top: number;
-  heightWithGap: number;
+  left: number;
+  width: number;
+  height: number;
+  gap: number;
   noteRef: HTMLElement | null;
 };
 

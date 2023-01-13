@@ -73,7 +73,7 @@ const List = (props: ListInterface) => {
             position: "absolute",
             zIndex: 1,
             width: `${props.selectedNoteTransform.w}px`,
-            transform: `translateX(${dx}px) translateY(${dy}px) scale(1)`,
+            transform: `translateX(${dx}px) translateY(${dy}px) scale(1.02)`,
           };
         }
 
