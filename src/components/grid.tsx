@@ -5,8 +5,11 @@
 // [x] Separate List from Grid, update them individually.
 // [x] Unit testing on most of the code.
 // [x] Abstract the core data structure to separated file and be unit tested.
+// [x] Separate grid data refresh state from mouse state.
+// [ ] Mouse down event should be captured outside the list component.
 // [ ] Use more custom hooks to reduce the single file size.
 // [ ] Support touch gesture.
+// [ ] Test framework moves to Vitest.
 // [ ] Add animating effect.
 // [ ] Write a blog on this implementation.
 //
@@ -28,7 +31,7 @@ import List from "./list";
 
 import {
   GridData,
-  MouseStateType,
+  MousePosType,
   DraggingStateType,
   NoteRef,
   ListRef,
@@ -52,23 +55,14 @@ const Grid = (props: { gridData: GridData }) => {
   const noteRefs = useRef<NoteRef[]>([]);
   const listRefs = useRef<ListRef[]>([]);
 
-  // It will be accessed in window's event handler
-  const [mouseState, _setMouseState] = useState<MouseStateType>();
-  const mouseStateRef = useRef(mouseState);
-  const setMouseState = (mouseState: MouseStateType) => {
-    mouseStateRef.current = mouseState;
-    _setMouseState(mouseState);
-  };
+  const [mousePos, setMousePos] = useState<MousePosType>();
+  const [mousePressed, setMousePressed] = useState<boolean>(false);
 
   useEffect(() => {
-    // When mouse is in dragging mode, we will do a lot of calculations here
-    if (!draggingState || !mouseState) return;
-
     // Check if we need to refresh the grid data
     if (
-      mouseState &&
-      mouseState.pressed === false &&
-      mouseState.needRefresh === true &&
+      mousePos &&
+      mousePressed === false &&
       draggingState &&
       draggingState.insertingListId !== undefined &&
       draggingState.insertingRowIndex !== undefined &&
@@ -126,9 +120,13 @@ const Grid = (props: { gridData: GridData }) => {
       noteRefs.current = [];
       listRefs.current = [];
       setDraggingState(undefined);
-      setMouseState({ x: 0, y: 0, pressed: false, needRefresh: false });
       return;
     }
+  }, [mousePressed]);
+
+  useEffect(() => {
+    // When mouse is in dragging mode, we will do a lot of calculations here
+    if (!draggingState || !mousePos) return;
 
     setDraggingState((ds) => {
       if (ds === undefined || !listRefs.current) return ds;
@@ -154,9 +152,9 @@ const Grid = (props: { gridData: GridData }) => {
         dsModified.selectedNoteTransform
       ) {
         dsModified.selectedNoteTransform = {
-          dx: mouseState.x - ds.mouseDownX,
+          dx: mousePos.x - ds.mouseDownX,
           dy:
-            mouseState.y -
+            mousePos.y -
             ds.mouseDownY +
             (selectedNote.top - selectedListFirstNote.top),
           w: dsModified.selectedNoteTransform.w,
@@ -174,7 +172,7 @@ const Grid = (props: { gridData: GridData }) => {
         (list) =>
           list.listRef &&
           isPosInRect(
-            { x: mouseState.x, y: mouseState.y },
+            { x: mousePos.x, y: mousePos.y },
             list.listRef.getBoundingClientRect()
           )
       );
@@ -257,7 +255,7 @@ const Grid = (props: { gridData: GridData }) => {
 
       return dsModified;
     });
-  }, [mouseState]);
+  }, [mousePos]);
 
   const handleMouseUp = (ev: MouseEvent) => {
     console.log("MouseUp", ev.clientX, ev.clientY);
@@ -265,18 +263,11 @@ const Grid = (props: { gridData: GridData }) => {
     window.removeEventListener("mouseup", handleMouseUp);
     window.removeEventListener("mousemove", handleMouseMove);
 
-    setMouseState({
-      x: ev.clientX,
-      y: ev.clientY,
-      needRefresh: true,
-      pressed: false,
-    });
+    setMousePressed(false);
   };
 
   const handleMouseMove = (ev: MouseEvent) => {
-    setMouseState({
-      needRefresh: false,
-      pressed: true, // FIX: this state is not quite reasonable.
+    setMousePos({
       x: ev.clientX,
       y: ev.clientY,
     });
@@ -286,12 +277,7 @@ const Grid = (props: { gridData: GridData }) => {
     ev: React.MouseEvent<HTMLDivElement, MouseEvent>,
     selectedItem: { listId: number; rowIndex: number }
   ) => {
-    setMouseState({
-      x: ev.clientX,
-      y: ev.clientY,
-      needRefresh: false,
-      pressed: true,
-    });
+    setMousePressed(true);
 
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("mousemove", handleMouseMove);

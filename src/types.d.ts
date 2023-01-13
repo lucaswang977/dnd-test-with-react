@@ -5,11 +5,9 @@ export type Note = {
 
 export type GridData = Note[][];
 
-export type MouseStateType = {
+export type MousePosType = {
   x: number;
   y: number;
-  needRefresh: boolean;
-  pressed: boolean;
 };
 
 export type DraggingStateType = {
