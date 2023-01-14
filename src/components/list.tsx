@@ -50,7 +50,10 @@ const List = (props: ListInterface) => {
   return (
     <div ref={saveListRef} className="list">
       {props.gridData.map((note, rowIndex) => {
-        let transformStyle = props.transformStyles[rowIndex];
+        let transformStyle = undefined;
+        if (props.transformStyles) {
+          transformStyle = props.transformStyles[rowIndex];
+        }
 
         // if (transformData.height !== undefined)
         //   transformStyle.height = transformData.height;

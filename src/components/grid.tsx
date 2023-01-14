@@ -27,6 +27,7 @@
 // * The key point is to never reset the source element's DOM position to avoid re-calculate
 //   the transform arguments.
 
+import { CSSProperties } from "react";
 import { useEffect, useState, useRef } from "react";
 import { useMouse } from "../hooks/mouse";
 import List from "./list";
@@ -78,7 +79,6 @@ const Grid = (props: { gridData: GridData }) => {
 
       if (selectedItem) {
         let selectedListFirstNoteTop = 0;
-        let insertingListTransformData: number[] = [];
 
         noteRefs.current.forEach((item) => {
           // Save all the tops in refs array
@@ -119,17 +119,31 @@ const Grid = (props: { gridData: GridData }) => {
           }
         });
 
+        let transformStyles: CSSProperties[] = [];
         noteRefs.current.forEach((item) => {
-          if (
-            selectedItem &&
-            item.listId === selectedItem.listId &&
-            item.rowIndex > selectedItem.rowIndex
-          )
-            insertingListTransformData[item.rowIndex] =
-              selectedItem.rect.height + selectedItem.rect.gap;
+          if (selectedItem && item.listId === selectedItem.listId) {
+            const dy = selectedItem.rect.height + selectedItem.rect.gap;
+            transformStyles[item.rowIndex] = {};
+            if (item.rowIndex > selectedItem.rowIndex) {
+              transformStyles[item.rowIndex] = {
+                transform: `translateY(${dy}px)`,
+              };
+            } else if (item.rowIndex === selectedItem.rowIndex) {
+              const dy = selectedItem.rect.top - selectedListFirstNoteTop;
+              transformStyles[item.rowIndex] = {
+                position: "absolute",
+                zIndex: 1,
+                width: `${selectedItem.rect.width}px`,
+                transform: `translateY(${dy}px) scale(1.02)`,
+              };
+            }
+          }
         });
 
-        setDraggingState({
+        const gridTransformStyles: CSSProperties[][] = [];
+        gridTransformStyles[selectedItem.listId] = transformStyles;
+
+        const ds: DraggingStateType = {
           selectedListId: selectedItem.listId,
           selectedRowIndex: selectedItem.rowIndex,
           selectedRect: selectedItem.rect,
@@ -137,8 +151,13 @@ const Grid = (props: { gridData: GridData }) => {
           mouseDownY: mousePos.y,
           insertingListId: selectedItem.listId,
           insertingRowIndex: selectedItem.rowIndex,
-          insertingListYAxisTransform: insertingListTransformData,
-        });
+          placeholderHeight: selectedItem.rect.height,
+          transformStyles: gridTransformStyles,
+        };
+
+        console.log(ds);
+
+        setDraggingState(ds);
       }
     } else if (
       // When mouse is up, current state is checked to see if we should update
@@ -238,8 +257,6 @@ const Grid = (props: { gridData: GridData }) => {
             mousePos.y -
             ds.mouseDownY +
             (selectedNote.rect.top - selectedListFirstNote.rect.top),
-          width: dsModified.selectedNoteTransform.w,
-          height: dsModified.selectedNoteTransform.h,
         };
 
         if (selectedNote.noteRef) {
@@ -319,19 +336,21 @@ const Grid = (props: { gridData: GridData }) => {
         console.log("4:", topHeightList, insertingIndex);
 
         const delta = minusTwoTopHeightList(storedTopHeightList, topHeightList);
-        const transformData: number[] = [];
+        const transformStyles: CSSProperties[] = [];
         noteRefs.current.forEach((item) => {
           if (targetList && item.listId === targetList.listId && delta) {
             const dt = delta.find((i) => i.id === item.rowIndex);
-            transformData[item.rowIndex] = 0;
+            transformStyles[item.rowIndex] = {};
             if (dt) {
-              transformData[item.rowIndex] = dt.delta;
+              transformStyles[item.rowIndex] = {
+                transform: `translateY(${dt.delta}px)`,
+              };
             }
           }
         });
-        console.log("5: transformData:", transformData);
+        console.log("5: transformData:", transformStyles);
 
-        dsModified.insertingListYAxisTransform = transformData;
+        dsModified.transformStyles[targetList.listId] = transformStyles;
       }
 
       return dsModified;
@@ -347,6 +366,12 @@ const Grid = (props: { gridData: GridData }) => {
         if (draggingState && draggingState.selectedListId === colIndex) {
           placeholderHeight = draggingState.placeholderHeight;
           transformStyles = draggingState.transformStyles[colIndex];
+          transformStyles[draggingState.selectedRowIndex] = {
+            position: "absolute",
+            zIndex: 1,
+            width: `${draggingState.selectedRect.width}px`,
+            transform: `translateY(${draggingState.selectedRect.left}px) translateY(${draggingState.selectedRect.top}px) scale(1.02)`,
+          };
         }
 
         const saveListRef = (listId: number, element: HTMLElement | null) => {
