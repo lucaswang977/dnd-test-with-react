@@ -119,29 +119,29 @@ const Grid = (props: { gridData: GridData }) => {
           }
         });
 
-        let transformStyles: CSSProperties[] = [];
-        noteRefs.current.forEach((item) => {
-          if (selectedItem && item.listId === selectedItem.listId) {
-            const dy = selectedItem.rect.height + selectedItem.rect.gap;
-            transformStyles[item.rowIndex] = {};
-            if (item.rowIndex > selectedItem.rowIndex) {
-              transformStyles[item.rowIndex] = {
-                transform: `translateY(${dy}px)`,
-              };
-            } else if (item.rowIndex === selectedItem.rowIndex) {
-              const dy = selectedItem.rect.top - selectedListFirstNoteTop;
-              transformStyles[item.rowIndex] = {
-                position: "absolute",
-                zIndex: 1,
-                width: `${selectedItem.rect.width}px`,
-                transform: `translateY(${dy}px) scale(1.02)`,
-              };
-            }
-          }
-        });
+        // let transformStyles: CSSProperties[] = [];
+        // noteRefs.current.forEach((item) => {
+        //   if (selectedItem && item.listId === selectedItem.listId) {
+        //     const dy = selectedItem.rect.height + selectedItem.rect.gap;
+        //     transformStyles[item.rowIndex] = {};
+        //     if (item.rowIndex > selectedItem.rowIndex) {
+        //       transformStyles[item.rowIndex] = {
+        //         transform: `translateY(${dy}px)`,
+        //       };
+        //     } else if (item.rowIndex === selectedItem.rowIndex) {
+        //       const dy = selectedItem.rect.top - selectedListFirstNoteTop;
+        //       transformStyles[item.rowIndex] = {
+        //         position: "absolute",
+        //         zIndex: 1,
+        //         width: `${selectedItem.rect.width}px`,
+        //         transform: `translateY(${dy}px) scale(1.02)`,
+        //       };
+        //     }
+        //   }
+        // });
 
-        const gridTransformStyles: CSSProperties[][] = [];
-        gridTransformStyles[selectedItem.listId] = transformStyles;
+        // const gridTransformStyles: CSSProperties[][] = [];
+        // gridTransformStyles[selectedItem.listId] = transformStyles;
 
         const ds: DraggingStateType = {
           selectedListId: selectedItem.listId,
@@ -151,8 +151,6 @@ const Grid = (props: { gridData: GridData }) => {
           mouseDownY: mousePos.y,
           insertingListId: selectedItem.listId,
           insertingRowIndex: selectedItem.rowIndex,
-          placeholderHeight: selectedItem.rect.height,
-          transformStyles: gridTransformStyles,
         };
 
         console.log(ds);
@@ -348,8 +346,10 @@ const Grid = (props: { gridData: GridData }) => {
             }
           }
         });
-        console.log("5: transformData:", transformStyles);
+        console.log("5: transformData:", targetList.listId, transformStyles);
 
+        dsModified.transformStyles = [];
+        dsModified.transformStyles[ds.selectedListId] = [];
         dsModified.transformStyles[targetList.listId] = transformStyles;
       }
 
@@ -363,15 +363,21 @@ const Grid = (props: { gridData: GridData }) => {
         let placeholderHeight = undefined;
         let transformStyles = undefined;
 
-        if (draggingState && draggingState.selectedListId === colIndex) {
-          placeholderHeight = draggingState.placeholderHeight;
+        if (draggingState && draggingState.transformStyles) {
           transformStyles = draggingState.transformStyles[colIndex];
-          transformStyles[draggingState.selectedRowIndex] = {
-            position: "absolute",
-            zIndex: 1,
-            width: `${draggingState.selectedRect.width}px`,
-            transform: `translateY(${draggingState.selectedRect.left}px) translateY(${draggingState.selectedRect.top}px) scale(1.02)`,
-          };
+          if (draggingState.selectedListId === colIndex) {
+            const dx = mousePos.x - draggingState.mouseDownX;
+            const dy = mousePos.y - draggingState.mouseDownY;
+            transformStyles[draggingState.selectedRowIndex] = {
+              position: "absolute",
+              zIndex: 1,
+              width: `${draggingState.selectedRect.width}px`,
+              transform: `translateX(${dx}px) translateY(${dy}px) scale(1.02)`,
+            };
+          }
+          if (draggingState.insertingListId === colIndex) {
+            placeholderHeight = draggingState.selectedRect.height;
+          }
         }
 
         const saveListRef = (listId: number, element: HTMLElement | null) => {

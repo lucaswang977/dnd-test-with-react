@@ -33,8 +33,8 @@ export type DraggingStateType = {
   insertingListId?: number;
   insertingRowIndex?: number;
 
-  transformStyles: CSSProperties[][];
-  placeholderHeight: number;
+  // The transform style of every note in changing list.
+  transformStyles?: CSSProperties[][];
 };
 
 export type NoteRef = {
