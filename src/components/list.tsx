@@ -34,10 +34,6 @@ const List = (props: ListInterface) => {
   let phDisplay = false;
   let phHeight = 0;
 
-  // if (props.gridData.length === 1 && props.selectedNoteRowIndex) {
-  //   phDisplay = true;
-  // }
-
   if (props.placeholderHeight !== undefined) {
     phDisplay = true;
     phHeight = props.placeholderHeight;
@@ -54,26 +50,6 @@ const List = (props: ListInterface) => {
         if (props.transformStyles) {
           transformStyle = props.transformStyles[rowIndex];
         }
-
-        // if (transformData.height !== undefined)
-        //   transformStyle.height = transformData.height;
-        // transformStyle = {
-        //   transform: `translateY(${oy}px)`,
-        // };
-
-        // if (
-        //   props.selectedNoteRowIndex === rowIndex &&
-        //   props.selectedNoteTransform
-        // ) {
-        //   const dx = props.selectedNoteTransform.dx;
-        //   const dy = props.selectedNoteTransform.dy;
-        //   transformStyle = {
-        //     position: "absolute",
-        //     zIndex: 1,
-        //     width: `${props.selectedNoteTransform.w}px`,
-        //     transform: `translateX(${dx}px) translateY(${dy}px) scale(1.02)`,
-        //   };
-        // }
 
         const saveNoteRef = (element: HTMLDivElement | null) => {
           if (element) {

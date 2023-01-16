@@ -27,7 +27,6 @@
 // * The key point is to never reset the source element's DOM position to avoid re-calculate
 //   the transform arguments.
 
-import { CSSProperties } from "react";
 import { useEffect, useState, useRef } from "react";
 import { useMouse } from "../hooks/mouse";
 import List from "./list";
@@ -119,30 +118,6 @@ const Grid = (props: { gridData: GridData }) => {
           }
         });
 
-        // let transformStyles: CSSProperties[] = [];
-        // noteRefs.current.forEach((item) => {
-        //   if (selectedItem && item.listId === selectedItem.listId) {
-        //     const dy = selectedItem.rect.height + selectedItem.rect.gap;
-        //     transformStyles[item.rowIndex] = {};
-        //     if (item.rowIndex > selectedItem.rowIndex) {
-        //       transformStyles[item.rowIndex] = {
-        //         transform: `translateY(${dy}px)`,
-        //       };
-        //     } else if (item.rowIndex === selectedItem.rowIndex) {
-        //       const dy = selectedItem.rect.top - selectedListFirstNoteTop;
-        //       transformStyles[item.rowIndex] = {
-        //         position: "absolute",
-        //         zIndex: 1,
-        //         width: `${selectedItem.rect.width}px`,
-        //         transform: `translateY(${dy}px) scale(1.02)`,
-        //       };
-        //     }
-        //   }
-        // });
-
-        // const gridTransformStyles: CSSProperties[][] = [];
-        // gridTransformStyles[selectedItem.listId] = transformStyles;
-
         const ds: DraggingStateType = {
           selectedListId: selectedItem.listId,
           selectedRowIndex: selectedItem.rowIndex,
@@ -233,34 +208,39 @@ const Grid = (props: { gridData: GridData }) => {
       if (ds === undefined || !listRefs.current) return ds;
 
       const dsModified = { ...ds };
+      dsModified.transformStyles = [];
 
       // Move the selected note
       const selectedNote = noteRefs.current.find(
         (item) =>
           item.listId === ds.selectedListId &&
-          item.rowIndex == ds.selectedRowIndex
+          item.rowIndex === ds.selectedRowIndex
       );
-      const selectedListFirstNote = noteRefs.current.find(
+
+      const selectedListTopNote = noteRefs.current.find(
         (item) => item.listId === ds.selectedListId && item.rowIndex === 0
       );
 
-      let selectedNoteTop = 0;
-      let selectedNoteHeight = 0;
-
-      if (selectedNote && selectedListFirstNote) {
-        dsModified.selectedRect = {
-          ...ds.selectedRect,
-          left: mousePos.x - ds.mouseDownX,
-          top:
-            mousePos.y -
-            ds.mouseDownY +
-            (selectedNote.rect.top - selectedListFirstNote.rect.top),
+      if (selectedNote && selectedListTopNote) {
+        const dx =
+          mousePos.x -
+          draggingState.mouseDownX +
+          selectedNote.rect.left -
+          selectedListTopNote.rect.left;
+        const dy =
+          mousePos.y -
+          draggingState.mouseDownY +
+          selectedNote.rect.top -
+          selectedListTopNote.rect.top;
+        dsModified.transformStyles[draggingState.selectedListId] = [];
+        dsModified.transformStyles[draggingState.selectedListId][
+          draggingState.selectedRowIndex
+        ] = {
+          position: "absolute",
+          zIndex: 1,
+          width: `${draggingState.selectedRect.width}px`,
+          transform: `translateX(${dx}px) translateY(${dy}px) scale(1.02)`,
         };
-
-        if (selectedNote.noteRef) {
-          selectedNoteTop = selectedNote.noteRef.getBoundingClientRect().y;
-          selectedNoteHeight = selectedNote.rect.height + selectedNote.rect.gap;
-        }
       }
 
       // Find which list the dragging note is currently on.
@@ -274,7 +254,7 @@ const Grid = (props: { gridData: GridData }) => {
       );
 
       // Calculate the transform data of the list which is being inserted.
-      if (targetList) {
+      if (targetList && selectedNote && selectedNote.noteRef) {
         if (targetList.listId !== ds.insertingListId) {
           dsModified.insertingListId = targetList.listId;
         }
@@ -307,7 +287,7 @@ const Grid = (props: { gridData: GridData }) => {
         if (ds.insertingRowIndex !== undefined) {
           topHeightList = insertItemIntoTopHeightList(
             ds.insertingRowIndex,
-            selectedNoteHeight,
+            selectedNote.rect.height + selectedNote.rect.gap,
             0,
             false,
             topHeightList
@@ -316,8 +296,8 @@ const Grid = (props: { gridData: GridData }) => {
         console.log("3:", topHeightList);
 
         const insertingIndex = findInsertingIndexFromTopHeightList(
-          selectedNoteTop,
-          selectedNoteHeight,
+          selectedNote.noteRef.getBoundingClientRect().top,
+          selectedNote.rect.height,
           topHeightList
         );
 
@@ -325,7 +305,7 @@ const Grid = (props: { gridData: GridData }) => {
           dsModified.insertingRowIndex = insertingIndex;
           topHeightList = insertItemIntoTopHeightList(
             insertingIndex,
-            selectedNoteHeight,
+            selectedNote.rect.height + selectedNote.rect.gap,
             0,
             false,
             storedTopHeightList
@@ -333,24 +313,25 @@ const Grid = (props: { gridData: GridData }) => {
         }
         console.log("4:", topHeightList, insertingIndex);
 
+        if (dsModified.transformStyles[targetList.listId] === undefined)
+          dsModified.transformStyles[targetList.listId] = [];
+
         const delta = minusTwoTopHeightList(storedTopHeightList, topHeightList);
-        const transformStyles: CSSProperties[] = [];
         noteRefs.current.forEach((item) => {
           if (targetList && item.listId === targetList.listId && delta) {
             const dt = delta.find((i) => i.id === item.rowIndex);
-            transformStyles[item.rowIndex] = {};
-            if (dt) {
-              transformStyles[item.rowIndex] = {
+            if (dt && dsModified.transformStyles) {
+              dsModified.transformStyles[targetList.listId][item.rowIndex] = {
                 transform: `translateY(${dt.delta}px)`,
               };
             }
           }
         });
-        console.log("5: transformData:", targetList.listId, transformStyles);
-
-        dsModified.transformStyles = [];
-        dsModified.transformStyles[ds.selectedListId] = [];
-        dsModified.transformStyles[targetList.listId] = transformStyles;
+        console.log(
+          "5: transformData:",
+          targetList.listId,
+          dsModified.transformStyles
+        );
       }
 
       return dsModified;
@@ -365,19 +346,12 @@ const Grid = (props: { gridData: GridData }) => {
 
         if (draggingState && draggingState.transformStyles) {
           transformStyles = draggingState.transformStyles[colIndex];
-          if (draggingState.selectedListId === colIndex) {
-            const dx = mousePos.x - draggingState.mouseDownX;
-            const dy = mousePos.y - draggingState.mouseDownY;
-            transformStyles[draggingState.selectedRowIndex] = {
-              position: "absolute",
-              zIndex: 1,
-              width: `${draggingState.selectedRect.width}px`,
-              transform: `translateX(${dx}px) translateY(${dy}px) scale(1.02)`,
-            };
-          }
-          if (draggingState.insertingListId === colIndex) {
+
+          if (
+            draggingState.insertingListId === colIndex ||
+            draggingState.selectedListId === colIndex
+          )
             placeholderHeight = draggingState.selectedRect.height;
-          }
         }
 
         const saveListRef = (listId: number, element: HTMLElement | null) => {
