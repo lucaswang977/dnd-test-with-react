@@ -1,6 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 
-import { isPosInRect } from "../utilities";
+import {
+  insertElementIntoArray,
+  isPosInRect,
+  removeElementByIndex,
+} from "../utilities";
 import { TopHeight } from "../types";
 import {
   removeItemFromTopHeightList,
@@ -9,7 +13,29 @@ import {
   minusTwoTopHeightList,
 } from "../utilities";
 
-describe("Test isPosInRect()", () => {
+describe("Testing array element insertion and deletion", () => {
+  test("Insert an element into an array.(index=2)", () => {
+    expect(insertElementIntoArray([1, 2, 3], 2, 5)).toEqual([1, 2, 5, 3]);
+  });
+  test("Insert an element into an array.(into the front)", () => {
+    expect(insertElementIntoArray([1, 2, 3], 0, 5)).toEqual([5, 1, 2, 3]);
+  });
+  test("Delete an element from the array. (index=0)", () => {
+    expect(removeElementByIndex([1, 2, 3], 0)).toEqual([2, 3]);
+  });
+  test("Delete an element from the array. (index=1)", () => {
+    expect(removeElementByIndex([1, 2, 3], 1)).toEqual([1, 3]);
+  });
+  test("Delete an element from the array. (the last element)", () => {
+    expect(removeElementByIndex([1, 2, 3], 2)).toEqual([1, 2]);
+  });
+  test("Delete an element then insert into the array. (the last element)", () => {
+    const arr = removeElementByIndex([1, 2, 3], 2);
+    expect(insertElementIntoArray(arr, 2, 3)).toEqual([1, 2, 3]);
+  });
+});
+
+describe("Testing isPosInRect()", () => {
   test("Inside the rect.", () => {
     expect(
       isPosInRect({ x: 100, y: 100 }, { x: 40, y: 40, width: 100, height: 200 })
@@ -22,7 +48,7 @@ describe("Test isPosInRect()", () => {
   });
 });
 
-describe("Test the abstraction of list of notes", () => {
+describe("Testing the abstraction of list of notes", () => {
   let initialList: TopHeight[] = [];
   beforeEach(() => {
     initialList = [

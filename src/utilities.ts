@@ -100,3 +100,14 @@ export const isPosInRect = (
   pos.x <= rect.x + rect.width &&
   pos.y >= rect.y &&
   pos.y <= rect.y + rect.height;
+
+export const removeElementByIndex = <T>(list: T[], index: number): T[] => [
+  ...list.slice(0, index),
+  ...list.slice(index + 1),
+];
+
+export const insertElementIntoArray = <T>(
+  list: T[],
+  index: number,
+  element: T
+): T[] => [...list.slice(0, index), element, ...list.slice(index)];

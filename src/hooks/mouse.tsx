@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { MousePosType } from "../types";
 
 export const useMouse = (): [MousePosType, boolean] => {
-  const [mousePos, setMousePos] = useState<MousePosType>();
+  const [mousePos, setMousePos] = useState<MousePosType>({ x: 0, y: 0 });
   const [mousePressed, setMousePressed] = useState<boolean>(false);
 
   const handleMouseUp = () => {
