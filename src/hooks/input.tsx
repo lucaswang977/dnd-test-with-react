@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { InputPosType } from "../types";
+import { isPosInRect } from "../utilities";
 
 // Support both mouse event & touch event.
-export const useInputEvent = (): [InputPosType, boolean] => {
+export const useInputEvent = (refs: HTMLElement[]): [InputPosType, boolean] => {
   const [inputPos, setInputPos] = useState<InputPosType>({ x: 0, y: 0 });
   const [inputStarted, setInputStarted] = useState<boolean>(false);
 
@@ -58,8 +59,20 @@ export const useInputEvent = (): [InputPosType, boolean] => {
 
   const handleTouchStart = (ev: TouchEvent) => {
     setInputStarted((started) => {
-      if (!started) {
-        const touch = ev.touches[0];
+      let focused = false;
+      const touch = ev.touches[0];
+      if (refs) {
+        const ref = refs.find((item) =>
+          isPosInRect(
+            { x: touch.clientX, y: touch.clientY },
+            item.getBoundingClientRect()
+          )
+        );
+        if (ref !== undefined) {
+          focused = true;
+        }
+      }
+      if (!started && focused) {
         ev.preventDefault();
         window.addEventListener("touchmove", handleTouchMove, {
           passive: false,

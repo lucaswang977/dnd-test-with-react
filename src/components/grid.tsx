@@ -58,8 +58,9 @@ const Grid = (props: { gridData: GridData }) => {
   // To save all the DOMs for get the client bounding rects
   const noteRefs = useRef<NoteRef[]>([]);
   const listRefs = useRef<ListRef[]>([]);
+  const hotSpots = useRef<HTMLElement[]>([]);
 
-  const [inputPos, inputStarted] = useInputEvent();
+  const [inputPos, inputStarted] = useInputEvent(hotSpots.current);
 
   // We will save current visuall state of every note when mousedown is triggered
   const onNoteSelected = () => {
@@ -379,6 +380,7 @@ const Grid = (props: { gridData: GridData }) => {
                   gap: 0,
                 },
               });
+              hotSpots.current.push(element);
             }
           }
         };
