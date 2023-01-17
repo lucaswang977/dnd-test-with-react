@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, test, expect, beforeEach } from "vitest";
 
 import {
   insertElementIntoArray,
@@ -14,22 +14,15 @@ import {
 } from "../utilities";
 
 describe("Testing array element insertion and deletion", () => {
-  test("Insert an element into an array.(index=2)", () => {
+  test("Insert an element into an array.", () => {
     expect(insertElementIntoArray([1, 2, 3], 2, 5)).toEqual([1, 2, 5, 3]);
-  });
-  test("Insert an element into an array.(into the front)", () => {
     expect(insertElementIntoArray([1, 2, 3], 0, 5)).toEqual([5, 1, 2, 3]);
   });
-  test("Delete an element from the array. (index=0)", () => {
+  test("Delete an element from the array.", () => {
     expect(removeElementByIndex([1, 2, 3], 0)).toEqual([2, 3]);
-  });
-  test("Delete an element from the array. (index=1)", () => {
     expect(removeElementByIndex([1, 2, 3], 1)).toEqual([1, 3]);
-  });
-  test("Delete an element from the array. (the last element)", () => {
     expect(removeElementByIndex([1, 2, 3], 2)).toEqual([1, 2]);
-  });
-  test("Delete an element then insert into the array. (the last element)", () => {
+
     const arr = removeElementByIndex([1, 2, 3], 2);
     expect(insertElementIntoArray(arr, 2, 3)).toEqual([1, 2, 3]);
   });
@@ -57,13 +50,11 @@ describe("Testing the abstraction of list of notes", () => {
       { id: 2, top: 592, height: 168 },
     ];
   });
-  test("removeItemFromTopHeightList(0)", () => {
+  test("removeItemFromTopHeightList", () => {
     expect(removeItemFromTopHeightList(0, initialList)).toEqual([
       { id: 1, top: 160, height: 288 },
       { id: 2, top: 448, height: 168 },
     ]);
-  });
-  test("removeItemFromTopHeightList(1)", () => {
     expect(removeItemFromTopHeightList(1, initialList)).toEqual([
       { id: 0, top: 160, height: 144 },
       { id: 2, top: 304, height: 168 },
@@ -76,67 +67,43 @@ describe("Testing the abstraction of list of notes", () => {
       { id: 1, top: 504, height: 288 },
       { id: 2, top: 792, height: 168 },
     ]);
-  });
-
-  test("insertItemIntoTopHeightList(1)", () => {
     expect(insertItemIntoTopHeightList(1, 200, 3, false, initialList)).toEqual([
       { id: 0, top: 160, height: 144 },
       { id: 1, top: 504, height: 288 },
       { id: 2, top: 792, height: 168 },
     ]);
-  });
-
-  test("insertItemIntoTopHeightList(1, true)", () => {
     expect(insertItemIntoTopHeightList(1, 200, 3, true, initialList)).toEqual([
       { id: 0, top: 160, height: 144 },
       { id: 3, top: 304, height: 200 },
       { id: 1, top: 504, height: 288 },
       { id: 2, top: 792, height: 168 },
     ]);
-  });
-
-  test("insertItemIntoTopHeightList(10, true)", () => {
     expect(insertItemIntoTopHeightList(10, 200, 3, true, initialList)).toEqual([
       { id: 0, top: 160, height: 144 },
       { id: 1, top: 304, height: 288 },
       { id: 2, top: 592, height: 168 },
       { id: 3, top: 760, height: 200 },
     ]);
-  });
-
-  test("insertItemIntoTopHeightList(0, false, [])", () => {
     expect(insertItemIntoTopHeightList(0, 200, 0, false, [])).toEqual([]);
-  });
-
-  test("insertItemIntoTopHeightList(20, true, [])", () => {
     expect(insertItemIntoTopHeightList(20, 200, 0, true, [])).toEqual([
       { id: 0, top: 0, height: 200 },
     ]);
   });
 
-  test("findInsertingIndex()=0", () => {
+  test("findInsertingIndex()", () => {
     expect(findInsertingIndexFromTopHeightList(50, 200, initialList)).toEqual(
       0
     );
-  });
-
-  test("findInsertingIndex()=2", () => {
     expect(findInsertingIndexFromTopHeightList(480, 144, initialList)).toEqual(
       2
     );
-  });
-
-  test("findInsertingIndex()=3", () => {
     expect(findInsertingIndexFromTopHeightList(650, 144, initialList)).toEqual(
       3
     );
-  });
-
-  test("findInsertingIndex()=-1", () => {
     expect(findInsertingIndexFromTopHeightList(650, 144, [])).toEqual(-1);
   });
 
-  test("minusTwoTopHeightList(-100)", () => {
+  test("minusTwoTopHeightList()", () => {
     const newList = initialList.map((i) => {
       return { ...i };
     });

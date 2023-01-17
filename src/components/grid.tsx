@@ -10,7 +10,7 @@
 // [x] Separate mouse event to a custom hook.
 // [x] Reduce grid file size by removing unnecessary states / calcs.
 // [x] Support touch gesture.
-// [ ] Test framework moves to Vitest.
+// [x] Test framework moves to Vitest.
 // [ ] Add animating effect.
 // [ ] Write a blog on this implementation.
 //
