@@ -8,8 +8,8 @@
 // [x] Separate grid data refresh state from mouse state.
 // [x] Mouse down event should be captured outside the list component.
 // [x] Separate mouse event to a custom hook.
-// [ ] Reduce grid file size by removing unnecessary states / calcs.
-// [ ] Support touch gesture.
+// [x] Reduce grid file size by removing unnecessary states / calcs.
+// [x] Support touch gesture.
 // [ ] Test framework moves to Vitest.
 // [ ] Add animating effect.
 // [ ] Write a blog on this implementation.
@@ -28,7 +28,7 @@
 //   the transform arguments.
 
 import { useEffect, useState, useRef } from "react";
-import { useMouse } from "../hooks/mouse";
+import { useInputEvent } from "../hooks/input";
 import List from "./list";
 
 import {
@@ -59,18 +59,23 @@ const Grid = (props: { gridData: GridData }) => {
   const noteRefs = useRef<NoteRef[]>([]);
   const listRefs = useRef<ListRef[]>([]);
 
-  const [mousePos, mousePressed] = useMouse();
+  const [inputPos, inputStarted] = useInputEvent();
 
   // We will save current visuall state of every note when mousedown is triggered
   const onNoteSelected = () => {
-    console.log("MouseDown", mousePos);
     let selectedItem = noteRefs.current.find((item) =>
       item.noteRef
-        ? isPosInRect(mousePos, item.noteRef.getBoundingClientRect())
+        ? isPosInRect(inputPos, item.noteRef.getBoundingClientRect())
         : false
     );
 
     if (selectedItem === undefined) return;
+    console.log(
+      "Note selected:",
+      inputPos,
+      selectedItem.listId,
+      selectedItem.rowIndex
+    );
 
     // Save current rect of all the lists in the refs array
     listRefs.current.forEach((item) => {
@@ -123,8 +128,8 @@ const Grid = (props: { gridData: GridData }) => {
       selectedListId: selectedItem.listId,
       selectedRowIndex: selectedItem.rowIndex,
       selectedRect: selectedItem.rect,
-      mouseDownX: mousePos.x,
-      mouseDownY: mousePos.y,
+      mouseDownX: inputPos.x,
+      mouseDownY: inputPos.y,
       insertingListId: selectedItem.listId,
       insertingRowIndex: selectedItem.rowIndex,
     };
@@ -135,8 +140,14 @@ const Grid = (props: { gridData: GridData }) => {
   // When mouse is up, current state is checked to see if we should update
   // the grid data in order to update the entire grid state.
   const onNoteReleased = () => {
-    console.log("MouseUp", mousePos);
     if (draggingState === undefined) return;
+
+    console.log(
+      "Note released:",
+      inputPos,
+      draggingState.selectedListId,
+      draggingState.selectedRowIndex
+    );
 
     setGridState((gs) => {
       const newGridData = gs.map((item) => {
@@ -198,10 +209,10 @@ const Grid = (props: { gridData: GridData }) => {
         (item) => item.listId === ds.selectedListId && item.rowIndex === 0
       );
 
-      let selectedNoteCenterX = mousePos.x;
-      let selectedNoteCenterY = mousePos.y;
-      const offsetX = mousePos.x - ds.mouseDownX;
-      const offsetY = mousePos.y - ds.mouseDownY;
+      let selectedNoteCenterX = inputPos.x;
+      let selectedNoteCenterY = inputPos.y;
+      const offsetX = inputPos.x - ds.mouseDownX;
+      const offsetY = inputPos.y - ds.mouseDownY;
 
       if (selectedNote && selectedListTopNote && selectedNote.noteRef) {
         const dx =
@@ -309,16 +320,16 @@ const Grid = (props: { gridData: GridData }) => {
   };
 
   useEffect(() => {
-    if (mousePressed) {
+    if (inputStarted) {
       onNoteSelected();
     } else {
       onNoteReleased();
     }
-  }, [mousePressed]);
+  }, [inputStarted]);
 
   useEffect(() => {
     onNoteBeingDragged();
-  }, [mousePos]);
+  }, [inputPos]);
 
   return (
     <div className="grid">

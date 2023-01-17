@@ -7,7 +7,7 @@ export type Note = {
 
 export type GridData = Note[][];
 
-export type MousePosType = {
+export type InputPosType = {
   x: number;
   y: number;
 };
