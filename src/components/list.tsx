@@ -20,13 +20,21 @@ const NotePlaceholder = (props: { display: boolean; height: number }) => {
       <div
         className="placeholder"
         style={{
-          display: "block",
           height: `${props.height}px`,
+          transition: "height 0.2s ease-in",
         }}
       ></div>
     );
   } else {
-    return <div className="placeholder"></div>;
+    return (
+      <div
+        className="placeholder"
+        style={{
+          height: "0px",
+          transition: "height 0.2s ease-in",
+        }}
+      ></div>
+    );
   }
 };
 
@@ -68,7 +76,9 @@ const List = (props: ListInterface) => {
           </div>
         );
       })}
-      <NotePlaceholder display={phDisplay} height={phHeight} />
+      {props.placeholderHeight !== undefined ? (
+        <NotePlaceholder display={phDisplay} height={phHeight} />
+      ) : undefined}
     </div>
   );
 };

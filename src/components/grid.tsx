@@ -27,6 +27,12 @@
 // * The key point is to never reset the source element's DOM position to avoid re-calculate
 //   the transform arguments.
 
+// TODO: The animation does not play on the list where a note is dragging away from.
+// TODO: The growth animation on the list does not take effect, because when we insert the
+// placeholder element, its height is already the target height, we need a starting point.
+// TODO: We should add a transition animation when the mouse is released and the dragging
+// note goes back to its original place.
+
 import { useEffect, useState, useRef } from "react";
 import { useInputEvent } from "../hooks/input";
 import List from "./list";
@@ -133,6 +139,7 @@ const Grid = (props: { gridData: GridData }) => {
       mouseDownY: inputPos.y,
       insertingListId: selectedItem.listId,
       insertingRowIndex: selectedItem.rowIndex,
+      transitionAnim: false,
     };
 
     setDraggingState(ds);
@@ -226,7 +233,7 @@ const Grid = (props: { gridData: GridData }) => {
           position: "absolute",
           zIndex: 1,
           width: `${ds.selectedRect.width}px`,
-          transform: `translateX(${dx}px) translateY(${dy}px) scale(1.02)`,
+          transform: `translateX(${dx}px) translateY(${dy}px)`,
         };
 
         selectedNoteCenterX =
@@ -265,6 +272,8 @@ const Grid = (props: { gridData: GridData }) => {
             ds.selectedRowIndex,
             topHeightList
           );
+        } else {
+          dsModified.insertingRowIndex = undefined;
         }
 
         // Later we will use this stored list to be compared with the updated
@@ -273,9 +282,9 @@ const Grid = (props: { gridData: GridData }) => {
           return { ...item };
         });
 
-        if (ds.insertingRowIndex !== undefined) {
+        if (dsModified.insertingRowIndex !== undefined) {
           topHeightList = insertItemIntoTopHeightList(
-            ds.insertingRowIndex,
+            dsModified.insertingRowIndex,
             selectedNote.rect.height + selectedNote.rect.gap,
             0,
             false,
@@ -289,8 +298,12 @@ const Grid = (props: { gridData: GridData }) => {
           topHeightList
         );
 
-        if (insertingIndex >= 0 && insertingIndex !== ds.insertingRowIndex) {
+        if (
+          insertingIndex >= 0 &&
+          insertingIndex !== dsModified.insertingRowIndex
+        ) {
           dsModified.insertingRowIndex = insertingIndex;
+          dsModified.transitionAnim = true;
           topHeightList = insertItemIntoTopHeightList(
             insertingIndex,
             selectedNote.rect.height + selectedNote.rect.gap,
@@ -300,6 +313,9 @@ const Grid = (props: { gridData: GridData }) => {
           );
         }
 
+        let transitionAnimStyle = dsModified.transitionAnim
+          ? "transform 0.2s"
+          : "none";
         if (dsModified.transformStyles[targetList.listId] === undefined)
           dsModified.transformStyles[targetList.listId] = [];
 
@@ -310,6 +326,7 @@ const Grid = (props: { gridData: GridData }) => {
             if (dt && dsModified.transformStyles) {
               dsModified.transformStyles[targetList.listId][item.rowIndex] = {
                 transform: `translateY(${dt.delta}px)`,
+                transition: `${transitionAnimStyle}`,
               };
             }
           }

@@ -35,6 +35,7 @@ export type DraggingStateType = {
 
   // The transform style of every note in changing list.
   transformStyles?: CSSProperties[][];
+  transitionAnim?: boolean;
 };
 
 export type NoteRef = {

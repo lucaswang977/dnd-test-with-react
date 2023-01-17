@@ -10,7 +10,6 @@ export const useInputEvent = (refs: HTMLElement[]): [InputPosType, boolean] => {
   const handleMouseUp = () => {
     setInputStarted((started) => {
       if (started) {
-        console.log("up:", started);
         window.removeEventListener("mouseup", handleMouseUp);
         window.removeEventListener("mousemove", handleMouseMove);
         return false;
@@ -31,7 +30,6 @@ export const useInputEvent = (refs: HTMLElement[]): [InputPosType, boolean] => {
   const handleMouseDown = (ev: MouseEvent) => {
     setInputStarted((started) => {
       if (!started) {
-        console.log("down:", started);
         window.addEventListener("mouseup", handleMouseUp);
         window.addEventListener("mousemove", handleMouseMove);
         setInputPos({
