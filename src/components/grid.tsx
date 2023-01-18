@@ -11,7 +11,7 @@
 // [x] Reduce grid file size by removing unnecessary states / calcs.
 // [x] Support touch gesture.
 // [x] Test framework moves to Vitest.
-// [ ] Add animating effect.
+// [p] Add animating effect.
 // [ ] Write a blog on this implementation.
 //
 // Note:
@@ -27,7 +27,6 @@
 // * The key point is to never reset the source element's DOM position to avoid re-calculate
 //   the transform arguments.
 
-// TODO: The animation does not play on the list where a note is dragging away from.
 // TODO: The growth animation on the list does not take effect, because when we insert the
 // placeholder element, its height is already the target height, we need a starting point.
 // TODO: We should add a transition animation when the mouse is released and the dragging
@@ -156,7 +155,6 @@ const Grid = (props: { gridData: GridData }) => {
       draggingState.selectedListId,
       draggingState.selectedRowIndex
     );
-
     setGridState((gs) => {
       const newGridData = gs.map((item) => {
         return item.map((item) => {
@@ -188,9 +186,40 @@ const Grid = (props: { gridData: GridData }) => {
 
       return newGridData;
     });
+
     noteRefs.current = [];
     listRefs.current = [];
     setDraggingState(undefined);
+
+    // setDraggingState((ds) => {
+    //   if (ds === undefined) return ds;
+
+    //   const dsModified = { ...ds };
+    //   dsModified.transformStyles = [];
+
+    //   if (dsModified.insertingListId !== undefined) {
+    //     dsModified.transformStyles[dsModified.insertingListId] = [];
+    //   }
+
+    //   if (dsModified.selectedListId != undefined) {
+    //     dsModified.transformStyles[dsModified.selectedListId] = [];
+    //   }
+
+    //   noteRefs.current.forEach((item) => {
+    //     if (
+    //       dsModified.selectedListId !== undefined &&
+    //       dsModified.insertingListId !== undefined &&
+    //       (item.listId === dsModified.selectedListId ||
+    //         item.listId === dsModified.insertingListId) &&
+    //       dsModified.transformStyles
+    //     ) {
+    //       dsModified.transformStyles[item.listId][item.rowIndex] = {
+    //         transition: "transform 0.2s",
+    //       };
+    //     }
+    //   });
+    //   return dsModified;
+    // });
   };
 
   // When mouse is in dragging mode, we will update the visual state by
@@ -234,6 +263,7 @@ const Grid = (props: { gridData: GridData }) => {
           zIndex: 1,
           width: `${ds.selectedRect.width}px`,
           transform: `translateX(${dx}px) translateY(${dy}px)`,
+          transition: "none",
         };
 
         selectedNoteCenterX =
@@ -329,6 +359,34 @@ const Grid = (props: { gridData: GridData }) => {
                 transition: `${transitionAnimStyle}`,
               };
             }
+          }
+        });
+      }
+
+      if (
+        targetList === undefined &&
+        dsModified.insertingListId !== undefined &&
+        dsModified.transformStyles
+      ) {
+        if (
+          dsModified.transformStyles[dsModified.insertingListId] === undefined
+        ) {
+          dsModified.transformStyles[dsModified.insertingListId] = [];
+        }
+        noteRefs.current.forEach((item) => {
+          if (
+            item.listId === dsModified.insertingListId &&
+            dsModified.transformStyles &&
+            !(
+              dsModified.selectedListId === dsModified.insertingListId &&
+              item.rowIndex === dsModified.selectedRowIndex
+            )
+          ) {
+            dsModified.transformStyles[dsModified.insertingListId][
+              item.rowIndex
+            ] = {
+              transition: "transform 0.2s",
+            };
           }
         });
       }
