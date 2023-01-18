@@ -12,6 +12,7 @@
 // [x] Support touch gesture.
 // [x] Test framework moves to Vitest.
 // [p] Add animating effect.
+// [ ] Extract the business logic to support other app integration.
 // [ ] Write a blog on this implementation.
 //
 // Note:
@@ -190,36 +191,6 @@ const Grid = (props: { gridData: GridData }) => {
     noteRefs.current = [];
     listRefs.current = [];
     setDraggingState(undefined);
-
-    // setDraggingState((ds) => {
-    //   if (ds === undefined) return ds;
-
-    //   const dsModified = { ...ds };
-    //   dsModified.transformStyles = [];
-
-    //   if (dsModified.insertingListId !== undefined) {
-    //     dsModified.transformStyles[dsModified.insertingListId] = [];
-    //   }
-
-    //   if (dsModified.selectedListId != undefined) {
-    //     dsModified.transformStyles[dsModified.selectedListId] = [];
-    //   }
-
-    //   noteRefs.current.forEach((item) => {
-    //     if (
-    //       dsModified.selectedListId !== undefined &&
-    //       dsModified.insertingListId !== undefined &&
-    //       (item.listId === dsModified.selectedListId ||
-    //         item.listId === dsModified.insertingListId) &&
-    //       dsModified.transformStyles
-    //     ) {
-    //       dsModified.transformStyles[item.listId][item.rowIndex] = {
-    //         transition: "transform 0.2s",
-    //       };
-    //     }
-    //   });
-    //   return dsModified;
-    // });
   };
 
   // When mouse is in dragging mode, we will update the visual state by

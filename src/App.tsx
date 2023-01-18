@@ -72,7 +72,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1 className="title">Drag &amp; Drop Grid Layout in React</h1>
+      <h1 className="title">Drag and Drop with React & Typescript</h1>
       <Grid gridData={initialGridData} />
     </div>
   );
