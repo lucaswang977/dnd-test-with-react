@@ -4,6 +4,7 @@ import { Note } from "../types";
 export interface ListInterface {
   listId: number;
   gridData: Note[];
+  state: "still" | "inserting";
   onSaveListRef: (listId: number, element: HTMLElement | null) => void;
   onSaveNoteRef: (
     listId: number,
@@ -41,6 +42,7 @@ const NotePlaceholder = (props: { display: boolean; height: number }) => {
 const List = (props: ListInterface) => {
   let phDisplay = false;
   let phHeight = 0;
+  let listStyleName = "list";
 
   if (props.placeholderHeight !== undefined) {
     phDisplay = true;
@@ -51,8 +53,10 @@ const List = (props: ListInterface) => {
     if (element) props.onSaveListRef(props.listId, element);
   };
 
+  if (props.state === "inserting") listStyleName = "list-inserting";
+
   return (
-    <div ref={saveListRef} className="list">
+    <div ref={saveListRef} className={listStyleName}>
       {props.gridData.map((note, rowIndex) => {
         let transformStyle = undefined;
         if (props.transformStyles) {

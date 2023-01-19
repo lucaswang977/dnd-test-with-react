@@ -27,6 +27,11 @@
 //   will also be set on all the belowed elements.
 // * The key point is to never reset the source element's DOM position to avoid re-calculate
 //   the transform arguments.
+//
+// Update: (Refactoring thoughts)
+// * App -> Container(squential) -> Note/Placeholder
+// * Container's states: still, selected, inserting
+// * Note's states: still, dragging(transform), pushing(transform), returning
 
 // TODO: The growth animation on the list does not take effect, because when we insert the
 // placeholder element, its height is already the target height, we need a starting point.
@@ -383,6 +388,7 @@ const Grid = (props: { gridData: GridData }) => {
       {gridState.map((column, colIndex) => {
         let placeholderHeight = undefined;
         let transformStyles = undefined;
+        let listState: "still" | "inserting" = "still";
 
         if (draggingState && draggingState.transformStyles) {
           transformStyles = draggingState.transformStyles[colIndex];
@@ -393,6 +399,9 @@ const Grid = (props: { gridData: GridData }) => {
           )
             placeholderHeight = draggingState.selectedRect.height;
         }
+
+        if (draggingState && draggingState.insertingListId === colIndex)
+          listState = "inserting";
 
         const saveListRef = (listId: number, element: HTMLElement | null) => {
           if (listRefs.current && element) {
@@ -437,6 +446,7 @@ const Grid = (props: { gridData: GridData }) => {
             onSaveNoteRef={saveNoteRef}
             key={colIndex}
             listId={colIndex}
+            state={listState}
             gridData={column}
             transformStyles={transformStyles}
             placeholderHeight={placeholderHeight}
