@@ -21,28 +21,39 @@ type ElementRectType = {
   gap: number;
 };
 
+type ListStateEnumType = "still" | "inserting";
+type ListStateType = { listId: number; state: ListStateEnumType };
+
+type NoteStateEnumType = "still" | "dragging" | "pushing";
+type NoteStateType = {
+  listId: number;
+  rowIndex: number;
+  state: NoteStateEnumType;
+  data: { dx: number; dy: number; w: number };
+};
+
 export type DraggingStateType = {
   // List is the vertical line, every list contains some notes.
   selectedListId: number;
   selectedRowIndex: number;
   selectedRect: ElementRectType;
+
   // The position when mouse clicked down
   mouseDownX: number;
   mouseDownY: number;
   // Inserting related state
-  insertingListId?: number;
-  insertingRowIndex?: number;
+  insertingListId: number;
+  insertingRowIndex: number;
 
-  // The transform style of every note in changing list.
-  transformStyles?: CSSProperties[][];
-  transitionAnim?: boolean;
+  listStates?: ListStateType[];
+  noteStates?: NoteStateType[];
 };
 
 export type NoteRef = {
   rowIndex: number;
   listId: number;
   noteRef: HTMLElement | null;
-  rect: ElementRectType;
+  rect?: ElementRectType;
 };
 
 export type ListRef = {
@@ -52,3 +63,30 @@ export type ListRef = {
 };
 
 export type TopHeight = { id: number; top: number; height: number };
+
+export interface ListInterface {
+  listId: number;
+  gridData: Note[];
+  state: ListStateEnumType;
+  onSaveListRef: (listId: number, element: HTMLElement | null) => void;
+  onSaveNoteRef: (
+    listId: number,
+    rowIndex: number,
+    element: HTMLElement | null
+  ) => void;
+  placeholderHeight: number | undefined;
+  noteStates: NoteStateType[];
+}
+
+export interface NoteInterface {
+  listId: number;
+  rowIndex: number;
+  state: NoteStateType;
+  noteId: number;
+  noteText: string;
+  onSaveNoteRef: (
+    listId: number,
+    rowIndex: number,
+    element: HTMLElement | null
+  ) => void;
+}

@@ -1,19 +1,6 @@
-import { useState, useRef, useEffect, CSSProperties } from "react";
-import { Note } from "../types";
-
-export interface ListInterface {
-  listId: number;
-  gridData: Note[];
-  state: "still" | "inserting";
-  onSaveListRef: (listId: number, element: HTMLElement | null) => void;
-  onSaveNoteRef: (
-    listId: number,
-    rowIndex: number,
-    element: HTMLElement | null
-  ) => void;
-  transformStyles: CSSProperties[] | undefined;
-  placeholderHeight: number | undefined;
-}
+import { useState, useRef, useEffect } from "react";
+import { NoteStateType, ListInterface } from "../types";
+import Note from "./note";
 
 const NotePlaceholder = (props: { display: boolean; height: number }) => {
   if (props.display) {
@@ -108,26 +95,30 @@ const List = (props: ListInterface) => {
   return (
     <div ref={saveListRef} className={`list ${listStyleName}`}>
       {props.gridData.map((note, rowIndex) => {
-        let transformStyle = undefined;
-        if (props.transformStyles) {
-          transformStyle = props.transformStyles[rowIndex];
+        let noteState: NoteStateType = {
+          listId: props.listId,
+          rowIndex: rowIndex,
+          state: "still",
+          data: { dx: 0, dy: 0, w: 0 },
+        };
+
+        if (props.noteStates) {
+          const state = props.noteStates.find(
+            (item) => item.listId === props.listId && item.rowIndex === rowIndex
+          );
+          if (state) noteState = state;
         }
 
-        const saveNoteRef = (element: HTMLDivElement | null) => {
-          if (element) {
-            props.onSaveNoteRef(props.listId, rowIndex, element);
-          }
-        };
         return (
-          <div
-            ref={saveNoteRef}
+          <Note
             key={note.id}
-            className="note"
-            style={transformStyle}
-          >
-            <p>Item {note.id + 1}</p>
-            <p className="text">{note.text}</p>
-          </div>
+            noteId={note.id}
+            noteText={note.text}
+            listId={props.listId}
+            rowIndex={rowIndex}
+            state={noteState}
+            onSaveNoteRef={props.onSaveNoteRef}
+          />
         );
       })}
       {props.placeholderHeight !== undefined ? (
