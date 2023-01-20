@@ -1,4 +1,4 @@
-import { CSSProperties } from "react";
+import { useState, useRef, useEffect, CSSProperties } from "react";
 import { Note } from "../types";
 
 export interface ListInterface {
@@ -22,7 +22,6 @@ const NotePlaceholder = (props: { display: boolean; height: number }) => {
         className="placeholder"
         style={{
           height: `${props.height}px`,
-          transition: "height 0.2s ease-in",
         }}
       ></div>
     );
@@ -32,7 +31,6 @@ const NotePlaceholder = (props: { display: boolean; height: number }) => {
         className="placeholder"
         style={{
           height: "0px",
-          transition: "height 0.2s ease-in",
         }}
       ></div>
     );
@@ -42,7 +40,50 @@ const NotePlaceholder = (props: { display: boolean; height: number }) => {
 const List = (props: ListInterface) => {
   let phDisplay = false;
   let phHeight = 0;
-  let listStyleName = "list";
+  let listStyleName = "";
+
+  const [transitionState, _setTransitionState] = useState<string>("still");
+  const [refresh, setRefresh] = useState<boolean>(false);
+  const listRef = useRef<HTMLDivElement>();
+  const setTransitionState = (t: any) => {
+    _setTransitionState(t);
+  };
+  const handleTransitionEnd = () => {
+    setRefresh(true);
+  };
+
+  useEffect(() => {
+    if (refresh) {
+      if (transitionState === "exit-inserting") {
+        setTransitionState("still");
+      } else if (transitionState === "enter-inserting") {
+        setTransitionState("inserting");
+      }
+      setRefresh(false);
+    }
+  }, [refresh]);
+
+  if (props.state && transitionState !== props.state) {
+    if (props.state === "still" && transitionState === "inserting") {
+      setTransitionState("exit-inserting");
+    } else if (props.state === "inserting" && transitionState === "still") {
+      setTransitionState("enter-inserting");
+    }
+  }
+
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.addEventListener("transitionend", handleTransitionEnd);
+    }
+
+    return () => {
+      if (listRef.current)
+        listRef.current.removeEventListener(
+          "transitionend",
+          handleTransitionEnd
+        );
+    };
+  }, []);
 
   if (props.placeholderHeight !== undefined) {
     phDisplay = true;
@@ -50,13 +91,22 @@ const List = (props: ListInterface) => {
   }
 
   const saveListRef = (element: HTMLDivElement | null) => {
-    if (element) props.onSaveListRef(props.listId, element);
+    if (element) {
+      listRef.current = element;
+      props.onSaveListRef(props.listId, element);
+    }
   };
 
-  if (props.state === "inserting") listStyleName = "list-inserting";
+  if (transitionState === "enter-inserting") {
+    listStyleName = "list-inserting list-inserting-entering";
+  } else if (transitionState === "exit-inserting") {
+    listStyleName = "list-inserting-exiting";
+  } else if (transitionState === "inserting") {
+    listStyleName = "list-inserting";
+  }
 
   return (
-    <div ref={saveListRef} className={listStyleName}>
+    <div ref={saveListRef} className={`list ${listStyleName}`}>
       {props.gridData.map((note, rowIndex) => {
         let transformStyle = undefined;
         if (props.transformStyles) {

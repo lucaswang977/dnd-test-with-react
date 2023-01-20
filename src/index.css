@@ -95,14 +95,13 @@ html {
 }
 
 .list-inserting {
-  padding: 1rem;
-  display: flex;
   background-color: aquamarine;
-  flex-direction:column;
-  gap: 1rem;
-  width: 250px;
-  border: 1px solid #fcbf49;
-  height: fit-content;
+}
+
+.list-inserting-entering {
+  transition: background 0.2s ease-in;
+}
+.list-inserting-exiting {
   transition: background 0.2s ease-out;
 }
 
