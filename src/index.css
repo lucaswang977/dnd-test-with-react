@@ -116,6 +116,14 @@ html {
   place-items: center;
 }
 
+.no-transition {
+  transition: none;
+}
+
+.with-transform-transition {
+  transition: transform 0.2s ease-out;
+}
+
 .placeholder {
   display: block;
 }

@@ -29,12 +29,9 @@ const List = (props: ListInterface) => {
   let phHeight = 0;
   let listStyleName = "";
 
-  const [transitionState, _setTransitionState] = useState<string>("still");
+  const [transitionState, setTransitionState] = useState<string>("still");
   const [refresh, setRefresh] = useState<boolean>(false);
   const listRef = useRef<HTMLDivElement>();
-  const setTransitionState = (t: any) => {
-    _setTransitionState(t);
-  };
   const handleTransitionEnd = () => {
     setRefresh(true);
   };
@@ -72,6 +69,14 @@ const List = (props: ListInterface) => {
     };
   }, []);
 
+  if (transitionState === "enter-inserting") {
+    listStyleName = "list-inserting list-inserting-entering";
+  } else if (transitionState === "exit-inserting") {
+    listStyleName = "list-inserting-exiting";
+  } else if (transitionState === "inserting") {
+    listStyleName = "list-inserting";
+  }
+
   if (props.placeholderHeight !== undefined) {
     phDisplay = true;
     phHeight = props.placeholderHeight;
@@ -83,14 +88,6 @@ const List = (props: ListInterface) => {
       props.onSaveListRef(props.listId, element);
     }
   };
-
-  if (transitionState === "enter-inserting") {
-    listStyleName = "list-inserting list-inserting-entering";
-  } else if (transitionState === "exit-inserting") {
-    listStyleName = "list-inserting-exiting";
-  } else if (transitionState === "inserting") {
-    listStyleName = "list-inserting";
-  }
 
   return (
     <div ref={saveListRef} className={`list ${listStyleName}`}>
