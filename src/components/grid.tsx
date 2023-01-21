@@ -165,6 +165,10 @@ const Grid = (props: { gridData: GridData }) => {
       draggingState.selectedListId,
       draggingState.selectedRowIndex
     );
+    // TODO: Transition event listener on selected note
+    // Selected note translate back to mouse down position 
+    // Belowed notes will be pushed out.
+    // Refresh the grid.
     setGridState((gs) => {
       const newGridData = gs.map((item) => {
         return item.map((item) => {
@@ -346,6 +350,7 @@ const Grid = (props: { gridData: GridData }) => {
           }
         });
       } else {
+        // When the selected note is outside of any list.
         let noteStates: NoteStateType[] = [];
         noteRefs.current.forEach((item) => {
           if (
