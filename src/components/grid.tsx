@@ -342,6 +342,10 @@ const Grid = (props: { gridData: GridData }) => {
             }
           }
         });
+      } else {
+        dsModified.insertingListId = dsModified.selectedListId;
+        dsModified.insertingRowIndex = dsModified.selectedRowIndex;
+        dsModified.listStates = [];
       }
 
       return dsModified;
