@@ -116,15 +116,11 @@ html {
   place-items: center;
 }
 
-.dragging-transition {
+.no-transition{
   transition: none;
 }
 
-.pushing-transition,
-.enter-dragging-transition, 
-.exit-dragging-transition, 
-.enter-pushing-transition, 
-.exit-pushing-transition {
+.with-transition {
   transition: transform 0.2s ease-out;
 }
 

@@ -24,11 +24,12 @@ type ElementRectType = {
 type ListStateEnumType = "still" | "inserting";
 type ListStateType = { listId: number; state: ListStateEnumType };
 
-type NoteStateEnumType = "still" | "dragging" | "pushing";
+type NoteStateEnumType = "still" | "dragging";
 type NoteStateType = {
   listId: number;
   rowIndex: number;
   state: NoteStateEnumType;
+  transition: boolean;
   data: { dx: number; dy: number; w: number };
 };
 
@@ -47,6 +48,8 @@ export type DraggingStateType = {
 
   listStates?: ListStateType[];
   noteStates?: NoteStateType[];
+
+  justStartDragging: boolean;
 };
 
 export type NoteRef = {

@@ -148,6 +148,7 @@ const Grid = (props: { gridData: GridData }) => {
       mouseDownY: inputPos.y,
       insertingListId: selectedItem.listId,
       insertingRowIndex: selectedItem.rowIndex,
+      justStartDragging: true,
     };
 
     setDraggingState(ds);
@@ -246,6 +247,7 @@ const Grid = (props: { gridData: GridData }) => {
           listId: selectedNote.listId,
           rowIndex: selectedNote.rowIndex,
           state: "dragging",
+          transition: false,
           data: { dx: dx, dy: dy, w: ds.selectedRect.width },
         });
       }
@@ -335,7 +337,8 @@ const Grid = (props: { gridData: GridData }) => {
                 dsModified.noteStates.push({
                   listId: targetList.listId,
                   rowIndex: item.rowIndex,
-                  state: "pushing",
+                  state: "still",
+                  transition: dsModified.justStartDragging ? false : true,
                   data: { dx: 0, dy: dt.delta, w: 0 },
                 });
               }
@@ -343,10 +346,36 @@ const Grid = (props: { gridData: GridData }) => {
           }
         });
       } else {
+        let noteStates: NoteStateType[] = [];
+        noteRefs.current.forEach((item) => {
+          if (
+            item.listId === dsModified.insertingListId &&
+            item.rowIndex > dsModified.insertingRowIndex
+          ) {
+            noteStates.push({
+              listId: item.listId,
+              rowIndex: item.rowIndex,
+              state: "still",
+              transition: true,
+              data: { dx: 0, dy: 0, w: 0 },
+            });
+          }
+        });
+
+        const selectedNoteState = dsModified.noteStates.find(
+          (item) =>
+            item.listId === dsModified.selectedListId &&
+            item.rowIndex === dsModified.selectedRowIndex
+        );
+
+        if (selectedNoteState) noteStates.push(selectedNoteState);
+
         dsModified.insertingListId = dsModified.selectedListId;
         dsModified.insertingRowIndex = dsModified.selectedRowIndex;
         dsModified.listStates = [];
+        dsModified.noteStates = noteStates;
       }
+      dsModified.justStartDragging = false;
 
       return dsModified;
     });
