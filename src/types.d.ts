@@ -45,6 +45,7 @@ export type DraggingStateType = {
   // Inserting related state
   insertingListId: number;
   insertingRowIndex: number;
+  releasingDxDy: { dx: number; dy: number };
 
   listStates?: ListStateType[];
   noteStates?: NoteStateType[];
@@ -63,6 +64,7 @@ export type ListRef = {
   listId: number;
   listRef: HTMLElement | null;
   rect?: ElementRectType;
+  firstChildTopLeft?: { top: number; left: number };
 };
 
 export type TopHeight = { id: number; top: number; height: number };

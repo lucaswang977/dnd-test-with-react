@@ -8,32 +8,32 @@ import { NoteInterface } from "../types";
 // exit-pushing(pushing->still)
 
 const Note = (props: NoteInterface) => {
-  const [transitionState, setTransitionState] = useState(false);
+  // const [transitionState, setTransitionState] = useState(false);
   // const [refresh, setRefresh] = useState<boolean>(false);
-  const noteRef = useRef<HTMLDivElement>();
-  const handleTransitionEnd = () => {
-    console.log(
-      "Transition end: ",
-      props.listId,
-      props.rowIndex,
-      transitionState
-    );
-  };
+  // const noteRef = useRef<HTMLDivElement>();
+  // const handleTransitionEnd = () => {
+  //   console.log(
+  //     "Transition end: ",
+  //     props.listId,
+  //     props.rowIndex,
+  //     transitionState
+  //   );
+  // };
 
-  useEffect(() => {
-    if (noteRef.current) {
-      noteRef.current.addEventListener("transitionend", handleTransitionEnd);
-    }
+  // useEffect(() => {
+  //   if (noteRef.current) {
+  //     noteRef.current.addEventListener("transitionend", handleTransitionEnd);
+  //   }
 
-    return () => {
-      if (noteRef.current) {
-        noteRef.current.removeEventListener(
-          "transitionend",
-          handleTransitionEnd
-        );
-      }
-    };
-  }, []);
+  //   return () => {
+  //     if (noteRef.current) {
+  //       noteRef.current.removeEventListener(
+  //         "transitionend",
+  //         handleTransitionEnd
+  //       );
+  //     }
+  //   };
+  // }, []);
 
   // useEffect(() => {
   //   if (refresh) {
@@ -82,7 +82,7 @@ const Note = (props: NoteInterface) => {
   }
   const saveNoteRef = (element: HTMLDivElement | null) => {
     if (element) {
-      noteRef.current = element;
+      // noteRef.current = element;
       props.onSaveNoteRef(props.listId, props.rowIndex, element);
     }
   };

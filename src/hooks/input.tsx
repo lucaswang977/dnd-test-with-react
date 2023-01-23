@@ -3,6 +3,7 @@ import { InputPosType } from "../types";
 import { isPosInRect } from "../utilities";
 
 // Support both mouse event & touch event.
+// InputPos will only change once touch is started or mouse is down.
 export const useInputEvent = (refs: HTMLElement[]): [InputPosType, boolean] => {
   const [inputPos, setInputPos] = useState<InputPosType>({ x: 0, y: 0 });
   const [inputStarted, setInputStarted] = useState<boolean>(false);
