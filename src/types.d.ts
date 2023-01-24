@@ -45,10 +45,10 @@ export type DraggingStateType = {
   // Inserting related state
   insertingListId: number;
   insertingRowIndex: number;
-  releasingDxDy: { dx: number; dy: number };
 
   listStates?: ListStateType[];
   noteStates?: NoteStateType[];
+  releasingNoteStates?: NoteStateType[];
 
   justStartDragging: boolean;
 };

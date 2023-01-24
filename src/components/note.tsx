@@ -89,7 +89,7 @@ const Note = (props: NoteInterface) => {
   let transformStyle: CSSProperties = {};
   if (props.state.state === "dragging") {
     transformStyle = {
-      position: "fixed",
+      position: "absolute",
       zIndex: 1,
       width: `${props.state.data.w}px`,
       transform: `translateX(${props.state.data.dx}px) translateY(${props.state.data.dy}px)`,
