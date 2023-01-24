@@ -95,6 +95,7 @@ const List = (props: ListInterface) => {
         let noteState: NoteStateType = {
           listId: props.listId,
           rowIndex: rowIndex,
+          transition: false,
           state: "still",
           data: { dx: 0, dy: 0, w: 0 },
         };
