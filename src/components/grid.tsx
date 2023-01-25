@@ -13,7 +13,8 @@
 // [x] Test framework moves to Vitest.
 // [p] Add animating effect.
 // [x] DOM should not be updated when we click(mouse down and up) on a note.
-// [ ] Placeholder growth animation.
+// [ ] Placeholder state problem & growth animation.
+// [ ] Dragging should be forbidden when transition is executing.
 // [ ] Extract the business logic to support other app integration.
 // [ ] Write a blog on this implementation.
 //
@@ -34,11 +35,6 @@
 // * App -> Container(squential) -> Note/Placeholder
 // * Container's states: still, selected, inserting
 // * Note's states: still, dragging(transform), pushing(transform), returning
-
-// TODO: The growth animation on the list does not take effect, because when we insert the
-// placeholder element, its height is already the target height, we need a starting point.
-// TODO: We should add a transition animation when the mouse is released and the dragging
-// note goes back to its original place.
 
 import { useEffect, useState, useRef } from "react";
 import { useInputEvent } from "../hooks/input";
@@ -237,19 +233,20 @@ const Grid = (props: { gridData: GridData }) => {
     insertingRowIndex: number,
     selectedNoteHeight: number,
     selectedNoteGap: number,
-    selectedNoteTop: number
-  ) => {
+    selectedNoteTop: number,
+    firstItemTop: number
+  ): [{ id: number; delta: number }[] | undefined, number, number] => {
     let topHeightListChanged = insertItemIntoTopHeightList(
       insertingRowIndex,
       selectedNoteHeight + selectedNoteGap,
       0,
       false,
-      topHeightList
+      topHeightList,
+      firstItemTop
     );
 
     const insertingIndex = findInsertingIndexFromTopHeightList(
       selectedNoteTop,
-      selectedNoteHeight,
       topHeightList
     );
 
@@ -259,20 +256,27 @@ const Grid = (props: { gridData: GridData }) => {
         selectedNoteHeight + selectedNoteGap,
         0,
         false,
-        topHeightList
+        topHeightList,
+        firstItemTop
       );
     }
 
-    console.log(
+    const topHeightListForCalcTop = insertItemIntoTopHeightList(
+      insertingIndex,
+      selectedNoteHeight + selectedNoteGap,
+      0,
+      true,
       topHeightList,
-      insertingRowIndex,
-      selectedNoteHeight,
-      selectedNoteGap,
-      selectedNoteTop,
-      insertingIndex
+      firstItemTop
     );
 
-    return minusTwoTopHeightList(topHeightList, topHeightListChanged);
+    const top = topHeightListForCalcTop[insertingIndex].top;
+
+    return [
+      minusTwoTopHeightList(topHeightList, topHeightListChanged),
+      insertingIndex,
+      top,
+    ];
   };
 
   // We will save current visuall state of every note when mousedown is triggered
@@ -350,6 +354,11 @@ const Grid = (props: { gridData: GridData }) => {
         "transitionend",
         handleSelectedNoteTransitionEnd
       );
+
+      // TODO: If mouse pos is outside any list, back to the selected position.
+
+      // dsModified.insertingListId = dsModified.selectedListId;
+      // dsModified.insertingRowIndex = dsModified.selectedRowIndex;
 
       const ds: DraggingStateType = {
         ...draggingState,
@@ -448,77 +457,120 @@ const Grid = (props: { gridData: GridData }) => {
 
         // Later we will use this stored list to be compared with the updated
         // list to calc the transforming data.
-        const delta = calcTopHeightDeltaByInsertingPos(
-          topHeightList,
-          dsModified.insertingRowIndex,
-          selectedNote.rect.height,
-          selectedNote.rect.gap,
-          selectedNote.rect.top + inputPos.y - dsModified.mouseDownY
-        );
+        const [delta, insertingIndex, insertingNoteTop] =
+          calcTopHeightDeltaByInsertingPos(
+            topHeightList,
+            dsModified.insertingRowIndex,
+            selectedNote.rect.height,
+            selectedNote.rect.gap,
+            selectedNote.rect.top + inputPos.y - dsModified.mouseDownY,
+            selectedList.firstChildTopLeft
+              ? selectedList.firstChildTopLeft.top
+              : 0
+          );
 
+        dsModified.insertingRowIndex = insertingIndex;
+
+        if (insertingList.rect && insertingList.firstChildTopLeft) {
+          dsModified.releasingNoteStates.push({
+            listId: selectedNote.listId,
+            rowIndex: selectedNote.rowIndex,
+            state: "dragging",
+            transition: true,
+            data: {
+              dx: insertingList.rect.left - selectedList.rect.left,
+              dy: insertingNoteTop - insertingList.firstChildTopLeft.top,
+              w: dsModified.selectedRect.width,
+            },
+          });
+        }
         noteRefs.current.forEach((item) => {
-          if (insertingList && item.listId === insertingList.listId && delta) {
+          if (item.listId === insertingList.listId && delta) {
             const dt = delta.find((i) => i.id === item.rowIndex);
-            if (dt) {
-              if (dsModified.noteStates) {
-                dsModified.noteStates.push({
-                  listId: insertingList.listId,
-                  rowIndex: item.rowIndex,
-                  state: "still",
-                  transition: dsModified.justStartDragging ? false : true,
-                  data: { dx: 0, dy: dt.delta, w: 0 },
-                });
-              }
+            if (dt && dsModified.noteStates && dsModified.releasingNoteStates) {
+              dsModified.noteStates.push({
+                listId: insertingList.listId,
+                rowIndex: item.rowIndex,
+                state: "still",
+                transition: dsModified.justStartDragging ? false : true,
+                data: { dx: 0, dy: dt.delta, w: 0 },
+              });
+
+              dsModified.releasingNoteStates.push({
+                listId: insertingList.listId,
+                rowIndex: item.rowIndex,
+                state: "still",
+                transition: true,
+                data: { dx: 0, dy: dt.delta, w: 0 },
+              });
             }
           }
         });
       } else {
         // When the selected note is outside of any list.
-        let noteStates: NoteStateType[] = [];
-        let dy = 0;
-        let listTop = 0;
-        listRefs.current.forEach((item) => {
-          if (
-            item.listId === dsModified.insertingListId &&
-            item.firstChildTopLeft
-          ) {
-            listTop = item.firstChildTopLeft.top;
-          }
-        });
+        if (dsModified.insertingListId !== dsModified.selectedListId) {
+          noteRefs.current.forEach((item) => {
+            if (
+              item.listId === dsModified.insertingListId &&
+              item.rowIndex >= dsModified.insertingRowIndex &&
+              dsModified.noteStates
+            ) {
+              dsModified.noteStates.push({
+                listId: item.listId,
+                rowIndex: item.rowIndex,
+                state: "still",
+                transition: true,
+                data: { dx: 0, dy: 0, w: 0 },
+              });
+            }
+          });
+        }
+
+        dsModified.listStates = [];
         noteRefs.current.forEach((item) => {
           if (
-            item.listId === dsModified.insertingListId &&
-            item.rowIndex > dsModified.insertingRowIndex
+            item.listId === dsModified.selectedListId &&
+            item.rowIndex > dsModified.selectedRowIndex &&
+            dsModified.noteStates &&
+            dsModified.releasingNoteStates &&
+            selectedNote.rect &&
+            selectedList.firstChildTopLeft
           ) {
-            noteStates.push({
+            dsModified.noteStates.push({
               listId: item.listId,
               rowIndex: item.rowIndex,
               state: "still",
               transition: true,
               data: { dx: 0, dy: 0, w: 0 },
             });
+            dsModified.releasingNoteStates.push({
+              listId: item.listId,
+              rowIndex: item.rowIndex,
+              state: "still",
+              transition: true,
+              data: {
+                dx: 0,
+                dy: selectedNote.rect.height + selectedNote.rect.gap,
+                w: 0,
+              },
+            });
           }
-
-          if (
-            item.listId === dsModified.insertingListId &&
-            item.rowIndex === dsModified.insertingRowIndex &&
-            item.rect
-          )
-            dy = item.rect.top;
         });
+        if (selectedList.firstChildTopLeft) {
+          dsModified.releasingNoteStates.push({
+            listId: selectedNote.listId,
+            rowIndex: selectedNote.rowIndex,
+            state: "dragging",
+            transition: true,
+            data: {
+              dx: 0,
+              dy: selectedNote.rect.top - selectedList.firstChildTopLeft.top,
+              w: dsModified.selectedRect.width,
+            },
+          });
+        }
 
-        const selectedNoteState = dsModified.noteStates.find(
-          (item) =>
-            item.listId === dsModified.selectedListId &&
-            item.rowIndex === dsModified.selectedRowIndex
-        );
-
-        if (selectedNoteState) noteStates.push(selectedNoteState);
-
-        dsModified.insertingListId = dsModified.selectedListId;
-        dsModified.insertingRowIndex = dsModified.selectedRowIndex;
-        dsModified.listStates = [];
-        dsModified.noteStates = noteStates;
+        console.log(dsModified.noteStates);
       }
       dsModified.justStartDragging = false;
 

@@ -27,7 +27,8 @@ export const insertItemIntoTopHeightList = (
   height: number,
   id: number,
   fake: boolean,
-  items: TopHeight[]
+  items: TopHeight[],
+  firstItemTop: number
 ): TopHeight[] => {
   if (!items) return items;
 
@@ -35,7 +36,7 @@ export const insertItemIntoTopHeightList = (
   if (index > items.length) index = items.length;
 
   let newItems: TopHeight[] = [];
-  let insertedTop = 0;
+  let insertedTop = firstItemTop;
   items.forEach((item, row) => {
     if (row >= index) {
       newItems.push({ ...item, top: item.top + height });
@@ -56,21 +57,16 @@ export const insertItemIntoTopHeightList = (
 };
 
 // To find the suitable index for insertion.
-// Return -1 if parameters are invalid or not found
+// Return items.length if current y is bigger than the last item's center y.
 export const findInsertingIndexFromTopHeightList = (
-  top: number,
-  height: number,
+  currentItemTop: number,
   items: TopHeight[]
 ): number => {
-  if (!items || items.length === 0) return -1;
+  let index = items.findIndex(
+    (item) => currentItemTop < item.top + item.height / 2
+  );
 
-  const y = top + height / 2;
-  let index = undefined;
-  const bottom = items[items.length - 1].top + items[items.length - 1].height;
-
-  index = items.findIndex((item) => y < item.top + item.height / 2);
-
-  if (index < 0 && y < bottom) index = items.length;
+  if (index < 0) index = items.length;
 
   return index;
 };

@@ -8,7 +8,8 @@ const NotePlaceholder = (props: { display: boolean; height: number }) => {
       <div
         className="placeholder"
         style={{
-          height: `${props.height}px`,
+          paddingTop: `${props.height}px`,
+          marginBottom: "1rem",
         }}
       ></div>
     );
@@ -119,9 +120,7 @@ const List = (props: ListInterface) => {
           />
         );
       })}
-      {props.placeholderHeight !== undefined ? (
-        <NotePlaceholder display={phDisplay} height={phHeight} />
-      ) : undefined}
+      <NotePlaceholder display={phDisplay} height={phHeight} />
     </div>
   );
 };
