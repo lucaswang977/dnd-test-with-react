@@ -230,6 +230,20 @@ const Grid = (props: { gridData: GridData }) => {
     return list;
   };
 
+  const findSelectedNoteAndList = (
+    listId: number,
+    rowIndex: number
+  ): [ListRef | undefined, NoteRef | undefined] => {
+    const selectedNote = noteRefs.current.find(
+      (item) => item.listId === listId && item.rowIndex === rowIndex
+    );
+    const selectedList = listRefs.current.find(
+      (item) => item.listId === listId
+    );
+
+    return [selectedList, selectedNote];
+  };
+
   const calcTopHeightDeltaByInsertingPos = (
     topHeightList: TopHeight[],
     insertingRowIndex: number,
@@ -414,13 +428,9 @@ const Grid = (props: { gridData: GridData }) => {
       dsModified.noteStates = [];
       dsModified.releasingNoteStates = [];
 
-      const selectedNote = noteRefs.current.find(
-        (item) =>
-          item.listId === ds.selectedListId &&
-          item.rowIndex === ds.selectedRowIndex
-      );
-      const selectedList = listRefs.current.find(
-        (item) => item.listId === draggingState.selectedListId
+      const [selectedList, selectedNote] = findSelectedNoteAndList(
+        ds.selectedListId,
+        ds.selectedRowIndex
       );
 
       if (
@@ -613,14 +623,27 @@ const Grid = (props: { gridData: GridData }) => {
     <div className="grid">
       {gridState.map((column, colIndex) => {
         let showPlaceholder = false;
+        let listTransition = true;
+        let selectedNoteRect = undefined;
         let listState: "still" | "inserting" = "still";
         let noteStates: NoteStateType[] = [];
 
+        if (draggingState) {
+          const [, selectedNote] = findSelectedNoteAndList(
+            draggingState.selectedListId,
+            draggingState.selectedRowIndex
+          );
+
+          if (selectedNote) selectedNoteRect = selectedNote.rect;
+
+          if (draggingState.justStartDragging) listTransition = false;
+        }
         if (
           column.length === 0 &&
           !(draggingState && draggingState.insertingListId === colIndex)
-        )
+        ) {
           showPlaceholder = true;
+        }
 
         if (draggingState && draggingState.listStates) {
           const listStateItem = draggingState.listStates.find(
@@ -673,6 +696,8 @@ const Grid = (props: { gridData: GridData }) => {
           <List
             onSaveListRef={saveListRef}
             onSaveNoteRef={saveNoteRef}
+            selectedNoteRect={selectedNoteRect}
+            listTransition={listTransition}
             key={colIndex}
             listId={colIndex}
             state={listState}

@@ -73,6 +73,8 @@ export interface ListInterface {
   listId: number;
   gridData: Note[];
   state: ListStateEnumType;
+  selectedNoteRect: ElementRectType | undefined;
+  listTransition: boolean;
   onSaveListRef: (listId: number, element: HTMLElement | null) => void;
   onSaveNoteRef: (
     listId: number,

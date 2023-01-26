@@ -1,5 +1,5 @@
 /*
-  1. Use a more-intuitive box-sizing model.
+  1ns. Use a more-intuitive box-sizing model.
 */
 *,
 *::before,
@@ -119,7 +119,7 @@ html {
 }
 
 .with-transition {
-  transition: transform 0.2s ease-out;
+  transition: transform 0.1s ease-out;
 }
 
 .placeholder {

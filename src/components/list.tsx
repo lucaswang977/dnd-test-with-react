@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, CSSProperties } from "react";
 import { NoteStateType, ListInterface } from "../types";
 import Note from "./note";
 
 const List = (props: ListInterface) => {
-  let listStyleName = "";
+  let listClassName = "";
+  let listStyle: CSSProperties = {};
 
   const [transitionState, setTransitionState] = useState<string>("still");
   const [refresh, setRefresh] = useState<boolean>(false);
@@ -46,11 +47,32 @@ const List = (props: ListInterface) => {
   }, []);
 
   if (transitionState === "enter-inserting") {
-    listStyleName = "list-inserting list-inserting-entering";
+    listClassName = "list-inserting list-inserting-entering";
+    if (props.selectedNoteRect) {
+      listStyle = {
+        transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
+        paddingBottom: `${
+          props.selectedNoteRect.height + props.selectedNoteRect.gap * 2
+        }px`,
+      };
+    }
   } else if (transitionState === "exit-inserting") {
-    listStyleName = "list-inserting-exiting";
+    listClassName = "list-inserting-exiting";
+    if (props.selectedNoteRect) {
+      listStyle = {
+        transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
+      };
+    }
   } else if (transitionState === "inserting") {
-    listStyleName = "list-inserting";
+    listClassName = "list-inserting";
+    if (props.selectedNoteRect) {
+      listStyle = {
+        transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
+        paddingBottom: `${
+          props.selectedNoteRect.height + props.selectedNoteRect.gap * 2
+        }px`,
+      };
+    }
   }
 
   const saveListRef = (element: HTMLDivElement | null) => {
@@ -61,7 +83,11 @@ const List = (props: ListInterface) => {
   };
 
   return (
-    <div ref={saveListRef} className={`list ${listStyleName}`}>
+    <div
+      ref={saveListRef}
+      className={`list ${listClassName}`}
+      style={listStyle}
+    >
       {props.gridData.map((note, rowIndex) => {
         let noteState: NoteStateType = {
           listId: props.listId,
