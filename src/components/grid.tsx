@@ -46,6 +46,7 @@ import {
   NoteRef,
   ListRef,
   TopHeight,
+  InputPosType,
   NoteStateType,
 } from "../types";
 
@@ -61,6 +62,7 @@ import {
 
 const Grid = (props: { gridData: GridData }) => {
   const [gridState, setGridState] = useState(props.gridData);
+  const [refreshState, setRefreshState] = useState(false);
   const [draggingState, setDraggingState] = useState<
     DraggingStateType | undefined
   >();
@@ -193,7 +195,7 @@ const Grid = (props: { gridData: GridData }) => {
 
   const calcSelectedNoteDeltaPos = (
     selectedNote: NoteRef,
-    selectedList: ListRef,
+    inputPos: InputPosType,
     ds: DraggingStateType
   ) => {
     // We need the top note's rect to calculate the transforming
@@ -201,31 +203,31 @@ const Grid = (props: { gridData: GridData }) => {
     const offsetX = inputPos.x - ds.mouseDownX;
     const offsetY = inputPos.y - ds.mouseDownY;
 
-    let dx = 0;
-    let dy = 0;
     let selectedNoteCenterX = inputPos.x;
     let selectedNoteCenterY = inputPos.y;
 
-    if (
-      selectedNote.noteRef &&
-      selectedNote.rect &&
-      selectedList.firstChildTopLeft
-    ) {
-      dx =
-        offsetX + selectedNote.rect.left - selectedList.firstChildTopLeft.left;
-      dy = offsetY + selectedNote.rect.top - selectedList.firstChildTopLeft.top;
-
+    if (selectedNote.noteRef && selectedNote.rect) {
       selectedNoteCenterX =
         offsetX + selectedNote.rect.left + selectedNote.rect.width / 2;
       selectedNoteCenterY =
         offsetY + selectedNote.rect.top + selectedNote.rect.height / 2;
     }
     return {
-      dx: dx,
-      dy: dy,
+      dx: offsetX,
+      dy: offsetY,
       centerX: selectedNoteCenterX,
       centerY: selectedNoteCenterY,
     };
+  };
+
+  const findInsertingList = (x: number, y: number) => {
+    const list = listRefs.current.find(
+      (list) =>
+        list.listRef &&
+        isPosInRect({ x: x, y: y }, list.listRef.getBoundingClientRect())
+    );
+
+    return list;
   };
 
   const calcTopHeightDeltaByInsertingPos = (
@@ -334,7 +336,7 @@ const Grid = (props: { gridData: GridData }) => {
     );
 
     const handleSelectedNoteTransitionEnd = () => {
-      updateGridData();
+      setRefreshState(true);
       if (selectedNoteRef != undefined && selectedNoteRef.noteRef) {
         selectedNoteRef.noteRef.removeEventListener(
           "transitionend",
@@ -346,29 +348,47 @@ const Grid = (props: { gridData: GridData }) => {
     if (
       selectedNoteRef !== undefined &&
       selectedNoteRef.noteRef &&
-      selectedNoteRef.rect &&
-      draggingState.releasingNoteStates &&
-      draggingState.releasingNoteStates.length > 0
+      selectedNoteRef.rect
     ) {
-      selectedNoteRef.noteRef.addEventListener(
-        "transitionend",
-        handleSelectedNoteTransitionEnd
+      let needRefresh = false;
+
+      // If mouse pos is outside any list, back to the selected position.
+      const selecteNoteDeltaPos = calcSelectedNoteDeltaPos(
+        selectedNoteRef,
+        inputPos,
+        draggingState
       );
 
-      // TODO: If mouse pos is outside any list, back to the selected position.
-
-      // dsModified.insertingListId = dsModified.selectedListId;
-      // dsModified.insertingRowIndex = dsModified.selectedRowIndex;
+      const insertingList = findInsertingList(
+        selecteNoteDeltaPos.centerX,
+        selecteNoteDeltaPos.centerY
+      );
 
       const ds: DraggingStateType = {
         ...draggingState,
-        noteStates: draggingState.releasingNoteStates,
-        releasingNoteStates: undefined,
       };
 
+      if (insertingList === undefined) {
+        ds.insertingListId = ds.selectedListId;
+        ds.insertingRowIndex = ds.selectedRowIndex;
+        needRefresh = true;
+      }
+
+      if (
+        draggingState.releasingNoteStates &&
+        draggingState.releasingNoteStates.length > 0
+      ) {
+        selectedNoteRef.noteRef.addEventListener(
+          "transitionend",
+          handleSelectedNoteTransitionEnd
+        );
+
+        ds.noteStates = ds.releasingNoteStates;
+        ds.releasingNoteStates = undefined;
+        needRefresh = false;
+      }
       setDraggingState(ds);
-    } else {
-      updateGridData();
+      if (needRefresh) setRefreshState(true);
     }
   };
 
@@ -414,7 +434,7 @@ const Grid = (props: { gridData: GridData }) => {
       // Move the selected note
       const selecteNoteDeltaPos = calcSelectedNoteDeltaPos(
         selectedNote,
-        selectedList,
+        inputPos,
         dsModified
       );
 
@@ -432,13 +452,9 @@ const Grid = (props: { gridData: GridData }) => {
 
       // Calculate the belowed notes' transforming data when the selected note
       // is being dragged on to the list.
-      const insertingList = listRefs.current.find(
-        (list) =>
-          list.listRef &&
-          isPosInRect(
-            { x: selecteNoteDeltaPos.centerX, y: selecteNoteDeltaPos.centerY },
-            list.listRef.getBoundingClientRect()
-          )
+      const insertingList = findInsertingList(
+        selecteNoteDeltaPos.centerX,
+        selecteNoteDeltaPos.centerY
       );
 
       // Selected note is inside a list
@@ -479,7 +495,7 @@ const Grid = (props: { gridData: GridData }) => {
             transition: true,
             data: {
               dx: insertingList.rect.left - selectedList.rect.left,
-              dy: insertingNoteTop - insertingList.firstChildTopLeft.top,
+              dy: insertingNoteTop - selectedNote.rect.top,
               w: dsModified.selectedRect.width,
             },
           });
@@ -533,8 +549,7 @@ const Grid = (props: { gridData: GridData }) => {
             item.rowIndex > dsModified.selectedRowIndex &&
             dsModified.noteStates &&
             dsModified.releasingNoteStates &&
-            selectedNote.rect &&
-            selectedList.firstChildTopLeft
+            selectedNote.rect
           ) {
             dsModified.noteStates.push({
               listId: item.listId,
@@ -556,27 +571,31 @@ const Grid = (props: { gridData: GridData }) => {
             });
           }
         });
-        if (selectedList.firstChildTopLeft) {
-          dsModified.releasingNoteStates.push({
-            listId: selectedNote.listId,
-            rowIndex: selectedNote.rowIndex,
-            state: "dragging",
-            transition: true,
-            data: {
-              dx: 0,
-              dy: selectedNote.rect.top - selectedList.firstChildTopLeft.top,
-              w: dsModified.selectedRect.width,
-            },
-          });
-        }
-
-        console.log(dsModified.noteStates);
+        dsModified.releasingNoteStates.push({
+          listId: selectedNote.listId,
+          rowIndex: selectedNote.rowIndex,
+          state: "dragging",
+          transition: true,
+          data: {
+            dx: 0,
+            dy: 0,
+            w: dsModified.selectedRect.width,
+          },
+        });
       }
       dsModified.justStartDragging = false;
 
       return dsModified;
     });
   };
+
+  useEffect(() => {
+    console.log("refresh:", refreshState);
+    if (refreshState) {
+      updateGridData();
+      setRefreshState(false);
+    }
+  }, [refreshState]);
 
   useEffect(() => {
     if (inputStarted) {
