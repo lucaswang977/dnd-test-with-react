@@ -13,7 +13,8 @@
 // [x] Test framework moves to Vitest.
 // [p] Add animating effect.
 // [x] DOM should not be updated when we click(mouse down and up) on a note.
-// [ ] Placeholder state problem & growth animation.
+// [x] Placeholder state problem & growth animation.
+// [ ] Drop here visibility problem.
 // [ ] Dragging should be forbidden when transition is executing.
 // [ ] Extract the business logic to support other app integration.
 // [ ] Write a blog on this implementation.
@@ -48,6 +49,7 @@ import {
   TopHeight,
   InputPosType,
   NoteStateType,
+  ListStateEnumType,
 } from "../types";
 
 import {
@@ -625,7 +627,7 @@ const Grid = (props: { gridData: GridData }) => {
         let showPlaceholder = false;
         let listTransition = true;
         let selectedNoteRect = undefined;
-        let listState: "still" | "inserting" = "still";
+        let listState: ListStateEnumType = "still";
         let noteStates: NoteStateType[] = [];
 
         if (draggingState) {
