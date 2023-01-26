@@ -612,17 +612,15 @@ const Grid = (props: { gridData: GridData }) => {
   return (
     <div className="grid">
       {gridState.map((column, colIndex) => {
-        let placeholderHeight = undefined;
+        let showPlaceholder = false;
         let listState: "still" | "inserting" = "still";
         let noteStates: NoteStateType[] = [];
 
         if (
-          draggingState &&
-          !draggingState.justStartDragging &&
-          (draggingState.insertingListId === colIndex ||
-            draggingState.selectedListId === colIndex)
+          column.length === 0 &&
+          !(draggingState && draggingState.insertingListId === colIndex)
         )
-          placeholderHeight = draggingState.selectedRect.height;
+          showPlaceholder = true;
 
         if (draggingState && draggingState.listStates) {
           const listStateItem = draggingState.listStates.find(
@@ -680,7 +678,7 @@ const Grid = (props: { gridData: GridData }) => {
             state={listState}
             noteStates={noteStates}
             gridData={column}
-            placeholderHeight={placeholderHeight}
+            showPlaceholder={showPlaceholder}
           />
         );
       })}

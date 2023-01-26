@@ -2,32 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { NoteStateType, ListInterface } from "../types";
 import Note from "./note";
 
-const NotePlaceholder = (props: { display: boolean; height: number }) => {
-  if (props.display) {
-    return (
-      <div
-        className="placeholder"
-        style={{
-          paddingTop: `${props.height}px`,
-          marginBottom: "1rem",
-        }}
-      ></div>
-    );
-  } else {
-    return (
-      <div
-        className="placeholder"
-        style={{
-          height: "0px",
-        }}
-      ></div>
-    );
-  }
-};
-
 const List = (props: ListInterface) => {
-  let phDisplay = false;
-  let phHeight = 0;
   let listStyleName = "";
 
   const [transitionState, setTransitionState] = useState<string>("still");
@@ -78,11 +53,6 @@ const List = (props: ListInterface) => {
     listStyleName = "list-inserting";
   }
 
-  if (props.placeholderHeight !== undefined) {
-    phDisplay = true;
-    phHeight = props.placeholderHeight;
-  }
-
   const saveListRef = (element: HTMLDivElement | null) => {
     if (element) {
       listRef.current = element;
@@ -120,7 +90,11 @@ const List = (props: ListInterface) => {
           />
         );
       })}
-      <NotePlaceholder display={phDisplay} height={phHeight} />
+      {props.showPlaceholder ? (
+        <div className="placeholder">Drop here</div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

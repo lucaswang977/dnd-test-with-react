@@ -79,7 +79,7 @@ export interface ListInterface {
     rowIndex: number,
     element: HTMLElement | null
   ) => void;
-  placeholderHeight: number | undefined;
+  showPlaceholder: boolean;
   noteStates: NoteStateType[];
 }
 
