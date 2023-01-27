@@ -51,6 +51,7 @@ export type DraggingStateType = {
   releasingNoteStates?: NoteStateType[];
 
   justStartDragging: boolean;
+  releasingState: boolean;
 };
 
 export type NoteRef = {

@@ -11,11 +11,13 @@
 // [x] Reduce grid file size by removing unnecessary states / calcs.
 // [x] Support touch gesture.
 // [x] Test framework moves to Vitest.
-// [p] Add animating effect.
+// [x] Add animating effect.
 // [x] DOM should not be updated when we click(mouse down and up) on a note.
 // [x] Placeholder state problem & growth animation.
+// [x] Dragging should be forbidden when transition is executing.
 // [ ] Drop here visibility problem.
-// [ ] Dragging should be forbidden when transition is executing.
+// [ ] Avoid unnecessary DOM updates.
+// [ ] Cypress auto testing.
 // [ ] Extract the business logic to support other app integration.
 // [ ] Write a blog on this implementation.
 //
@@ -299,6 +301,8 @@ const Grid = (props: { gridData: GridData }) => {
 
   // We will save current visuall state of every note when mousedown is triggered
   const onNoteSelected = () => {
+    if (draggingState) return;
+
     let selectedItem = noteRefs.current.find((item) =>
       item.noteRef
         ? isPosInRect(inputPos, item.noteRef.getBoundingClientRect())
@@ -328,6 +332,7 @@ const Grid = (props: { gridData: GridData }) => {
       insertingListId: selectedItem.listId,
       insertingRowIndex: selectedItem.rowIndex,
       justStartDragging: true,
+      releasingState: false,
     };
 
     setDraggingState(ds);
@@ -336,7 +341,7 @@ const Grid = (props: { gridData: GridData }) => {
   // When mouse is up, current state is checked to see if we should update
   // the grid data in order to update the entire grid state.
   const onNoteReleased = () => {
-    if (draggingState === undefined) return;
+    if (draggingState === undefined || draggingState.releasingState) return;
 
     console.log(
       "Note released:",
@@ -354,6 +359,7 @@ const Grid = (props: { gridData: GridData }) => {
     const handleSelectedNoteTransitionEnd = () => {
       setRefreshState(true);
       if (selectedNoteRef != undefined && selectedNoteRef.noteRef) {
+        console.log("transition end.");
         selectedNoteRef.noteRef.removeEventListener(
           "transitionend",
           handleSelectedNoteTransitionEnd
@@ -382,6 +388,7 @@ const Grid = (props: { gridData: GridData }) => {
 
       const ds: DraggingStateType = {
         ...draggingState,
+        releasingState: true,
       };
 
       if (insertingList === undefined) {
@@ -411,7 +418,7 @@ const Grid = (props: { gridData: GridData }) => {
   // When mouse is in dragging mode, we will update the visual state by
   // calculating all the temporary state.
   const onNoteBeingDragged = () => {
-    if (!draggingState) return;
+    if (!draggingState || draggingState.releasingState) return;
 
     // Simulate a little gravity
     if (
@@ -610,6 +617,7 @@ const Grid = (props: { gridData: GridData }) => {
   }, [refreshState]);
 
   useEffect(() => {
+    console.log("inputStarted: ", inputStarted);
     if (inputStarted) {
       onNoteSelected();
     } else {
