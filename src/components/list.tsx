@@ -29,6 +29,8 @@ const List = (props: ListInterface) => {
       setTransitionState("exit-inserting");
     } else if (props.state === "inserting" && transitionState === "still") {
       setTransitionState("enter-inserting");
+    } else if (props.state === "selected") {
+      setTransitionState("selected");
     }
   }
 
@@ -52,7 +54,7 @@ const List = (props: ListInterface) => {
       listStyle = {
         transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
         paddingBottom: `${
-          props.selectedNoteRect.height + props.selectedNoteRect.gap * 2
+          props.selectedNoteRect.height + props.selectedNoteRect.gap
         }px`,
       };
     }
@@ -69,7 +71,16 @@ const List = (props: ListInterface) => {
       listStyle = {
         transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
         paddingBottom: `${
-          props.selectedNoteRect.height + props.selectedNoteRect.gap * 2
+          props.selectedNoteRect.height + props.selectedNoteRect.gap
+        }px`,
+      };
+    }
+  } else if (transitionState === "selected") {
+    if (props.selectedNoteRect) {
+      listStyle = {
+        transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
+        paddingBottom: `${
+          props.selectedNoteRect.height + props.selectedNoteRect.gap
         }px`,
       };
     }

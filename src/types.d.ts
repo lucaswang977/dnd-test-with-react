@@ -21,7 +21,7 @@ type ElementRectType = {
   gap: number;
 };
 
-type ListStateEnumType = "still" | "inserting";
+type ListStateEnumType = "still" | "inserting" | "selected";
 type ListStateType = { listId: number; state: ListStateEnumType };
 
 type NoteStateEnumType = "still" | "dragging";

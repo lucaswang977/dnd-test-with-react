@@ -15,6 +15,7 @@
 // [x] DOM should not be updated when we click(mouse down and up) on a note.
 // [x] Placeholder state problem & growth animation.
 // [x] Dragging should be forbidden when transition is executing.
+// [ ] List component should not have its own state.
 // [ ] Drop here visibility problem.
 // [ ] Avoid unnecessary DOM updates.
 // [ ] Cypress auto testing.
@@ -104,7 +105,13 @@ const Grid = (props: { gridData: GridData }) => {
           nextTop = nextItem.noteRef.getBoundingClientRect().top;
         else {
           const lr = listRefs.current[item.listId];
-          if (lr && lr.rect) nextTop = lr.rect.bottom;
+          if (lr && lr.rect && lr.listRef) {
+            // let style = window.getComputedStyle(lr.listRef);
+            // let padding = style.getPropertyValue("padding-bottom");
+            // console.log("padding", padding);
+            // nextTop = lr.rect.bottom - Number(padding);
+            nextTop = lr.rect.bottom;
+          }
         }
 
         item.rect.gap = nextTop - item.rect.bottom;
@@ -359,7 +366,6 @@ const Grid = (props: { gridData: GridData }) => {
     const handleSelectedNoteTransitionEnd = () => {
       setRefreshState(true);
       if (selectedNoteRef != undefined && selectedNoteRef.noteRef) {
-        console.log("transition end.");
         selectedNoteRef.noteRef.removeEventListener(
           "transitionend",
           handleSelectedNoteTransitionEnd
@@ -372,7 +378,7 @@ const Grid = (props: { gridData: GridData }) => {
       selectedNoteRef.noteRef &&
       selectedNoteRef.rect
     ) {
-      let needRefresh = false;
+      let needRefreshImmediately = true;
 
       // If mouse pos is outside any list, back to the selected position.
       const selecteNoteDeltaPos = calcSelectedNoteDeltaPos(
@@ -388,13 +394,11 @@ const Grid = (props: { gridData: GridData }) => {
 
       const ds: DraggingStateType = {
         ...draggingState,
-        releasingState: true,
       };
 
       if (insertingList === undefined) {
         ds.insertingListId = ds.selectedListId;
         ds.insertingRowIndex = ds.selectedRowIndex;
-        needRefresh = true;
       }
 
       if (
@@ -408,10 +412,11 @@ const Grid = (props: { gridData: GridData }) => {
 
         ds.noteStates = ds.releasingNoteStates;
         ds.releasingNoteStates = undefined;
-        needRefresh = false;
+        ds.releasingState = true;
+        needRefreshImmediately = false;
       }
       setDraggingState(ds);
-      if (needRefresh) setRefreshState(true);
+      if (needRefreshImmediately) setRefreshState(true);
     }
   };
 
@@ -561,7 +566,9 @@ const Grid = (props: { gridData: GridData }) => {
           });
         }
 
-        dsModified.listStates = [];
+        dsModified.listStates = [
+          { listId: dsModified.selectedListId, state: "selected" },
+        ];
         noteRefs.current.forEach((item) => {
           if (
             item.listId === dsModified.selectedListId &&
@@ -609,7 +616,6 @@ const Grid = (props: { gridData: GridData }) => {
   };
 
   useEffect(() => {
-    console.log("refresh:", refreshState);
     if (refreshState) {
       updateGridData();
       setRefreshState(false);
@@ -617,7 +623,6 @@ const Grid = (props: { gridData: GridData }) => {
   }, [refreshState]);
 
   useEffect(() => {
-    console.log("inputStarted: ", inputStarted);
     if (inputStarted) {
       onNoteSelected();
     } else {
