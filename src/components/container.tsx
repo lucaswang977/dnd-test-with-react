@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect, CSSProperties } from "react";
-import { NoteStateType, ListInterface } from "../types";
+import { NoteStateType, ContainerInterface } from "../types";
 import Note from "./note";
 
-const List = (props: ListInterface) => {
+const Container = (props: ContainerInterface) => {
   let listClassName = "";
   let listStyle: CSSProperties = {};
 
   const [transitionState, setTransitionState] = useState<string>("still");
   const [refresh, setRefresh] = useState<boolean>(false);
-  const listRef = useRef<HTMLDivElement>();
+  const cntRef = useRef<HTMLDivElement>();
   const handleTransitionEnd = () => {
     setRefresh(true);
   };
@@ -35,13 +35,13 @@ const List = (props: ListInterface) => {
   }
 
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.addEventListener("transitionend", handleTransitionEnd);
+    if (cntRef.current) {
+      cntRef.current.addEventListener("transitionend", handleTransitionEnd);
     }
 
     return () => {
-      if (listRef.current)
-        listRef.current.removeEventListener(
+      if (cntRef.current)
+        cntRef.current.removeEventListener(
           "transitionend",
           handleTransitionEnd
         );
@@ -52,7 +52,7 @@ const List = (props: ListInterface) => {
     listClassName = "list-inserting list-inserting-entering";
     if (props.selectedNoteRect) {
       listStyle = {
-        transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
+        transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
         paddingBottom: `${
           props.selectedNoteRect.height + props.selectedNoteRect.gap
         }px`,
@@ -62,14 +62,14 @@ const List = (props: ListInterface) => {
     listClassName = "list-inserting-exiting";
     if (props.selectedNoteRect) {
       listStyle = {
-        transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
+        transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
       };
     }
   } else if (transitionState === "inserting") {
     listClassName = "list-inserting";
     if (props.selectedNoteRect) {
       listStyle = {
-        transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
+        transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
         paddingBottom: `${
           props.selectedNoteRect.height + props.selectedNoteRect.gap
         }px`,
@@ -78,7 +78,7 @@ const List = (props: ListInterface) => {
   } else if (transitionState === "selected") {
     if (props.selectedNoteRect) {
       listStyle = {
-        transition: `${props.listTransition}?"padding 0.1s ease-in":"none"}`,
+        transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
         paddingBottom: `${
           props.selectedNoteRect.height + props.selectedNoteRect.gap
         }px`,
@@ -86,22 +86,22 @@ const List = (props: ListInterface) => {
     }
   }
 
-  const saveListRef = (element: HTMLDivElement | null) => {
+  const saveContainerRef = (element: HTMLDivElement | null) => {
     if (element) {
-      listRef.current = element;
-      props.onSaveListRef(props.listId, element);
+      cntRef.current = element;
+      props.onSaveContainerRef(props.cntId, element);
     }
   };
 
   return (
     <div
-      ref={saveListRef}
+      ref={saveContainerRef}
       className={`list ${listClassName}`}
       style={listStyle}
     >
       {props.gridData.map((note, rowIndex) => {
         let noteState: NoteStateType = {
-          listId: props.listId,
+          cntId: props.cntId,
           rowIndex: rowIndex,
           transition: false,
           state: "still",
@@ -110,7 +110,7 @@ const List = (props: ListInterface) => {
 
         if (props.noteStates) {
           const state = props.noteStates.find(
-            (item) => item.listId === props.listId && item.rowIndex === rowIndex
+            (item) => item.cntId === props.cntId && item.rowIndex === rowIndex
           );
           if (state) noteState = state;
         }
@@ -120,7 +120,7 @@ const List = (props: ListInterface) => {
             key={note.id}
             noteId={note.id}
             noteText={note.text}
-            listId={props.listId}
+            cntId={props.cntId}
             rowIndex={rowIndex}
             state={noteState}
             onSaveNoteRef={props.onSaveNoteRef}
@@ -136,4 +136,4 @@ const List = (props: ListInterface) => {
   );
 };
 
-export default List;
+export default Container;

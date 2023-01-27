@@ -8,7 +8,7 @@ const Note = (props: NoteInterface) => {
   }
   const saveNoteRef = (element: HTMLDivElement | null) => {
     if (element) {
-      props.onSaveNoteRef(props.listId, props.rowIndex, element);
+      props.onSaveNoteRef(props.cntId, props.rowIndex, element);
     }
   };
   let transformStyle: CSSProperties = {};

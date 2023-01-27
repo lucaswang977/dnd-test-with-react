@@ -22,11 +22,11 @@ type ElementRectType = {
 };
 
 type ListStateEnumType = "still" | "inserting" | "selected";
-type ListStateType = { listId: number; state: ListStateEnumType };
+type ListStateType = { cntId: number; state: ListStateEnumType };
 
 type NoteStateEnumType = "still" | "dragging";
 type NoteStateType = {
-  listId: number;
+  cntId: number;
   rowIndex: number;
   state: NoteStateEnumType;
   transition: boolean;
@@ -56,29 +56,29 @@ export type DraggingStateType = {
 
 export type NoteRef = {
   rowIndex: number;
-  listId: number;
+  cntId: number;
   noteRef: HTMLElement | null;
   rect?: ElementRectType;
 };
 
-export type ListRef = {
-  listId: number;
-  listRef: HTMLElement | null;
+export type ContainerRef = {
+  cntId: number;
+  cntRef: HTMLElement | null;
   rect?: ElementRectType;
   firstChildTopLeft?: { top: number; left: number };
 };
 
 export type TopHeight = { id: number; top: number; height: number };
 
-export interface ListInterface {
-  listId: number;
+export interface ContainerInterface {
+  cntId: number;
   gridData: Note[];
   state: ListStateEnumType;
   selectedNoteRect: ElementRectType | undefined;
-  listTransition: boolean;
-  onSaveListRef: (listId: number, element: HTMLElement | null) => void;
+  needTransition: boolean;
+  onSaveContainerRef: (cntId: number, element: HTMLElement | null) => void;
   onSaveNoteRef: (
-    listId: number,
+    cntId: number,
     rowIndex: number,
     element: HTMLElement | null
   ) => void;
@@ -87,13 +87,13 @@ export interface ListInterface {
 }
 
 export interface NoteInterface {
-  listId: number;
+  cntId: number;
   rowIndex: number;
   state: NoteStateType;
   noteId: number;
   noteText: string;
   onSaveNoteRef: (
-    listId: number,
+    cntId: number,
     rowIndex: number,
     element: HTMLElement | null
   ) => void;
