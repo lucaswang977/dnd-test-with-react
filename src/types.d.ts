@@ -22,7 +22,11 @@ type ElementRectType = {
 };
 
 type ContainerStateEnumType = "still" | "inserting" | "selected";
-type ContainerStateType = { cntId: number; state: ContainerStateEnumType };
+type ContainerStateType = {
+  cntId: number;
+  state: ContainerStateEnumType;
+  transition: boolean;
+};
 
 type NoteStateEnumType = "still" | "dragging";
 type NoteStateType = {
@@ -73,9 +77,8 @@ export type TopHeight = { id: number; top: number; height: number };
 export interface ContainerInterface {
   cntId: number;
   gridData: Note[];
-  state: ContainerStateEnumType;
+  state: ContainerStateType | undefined;
   selectedNoteRect: ElementRectType | undefined;
-  needTransition: boolean;
   onSaveContainerRef: (cntId: number, element: HTMLElement | null) => void;
   onSaveNoteRef: (
     cntId: number,

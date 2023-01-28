@@ -15,10 +15,11 @@
 // [x] DOM should not be updated when we click(mouse down and up) on a note.
 // [x] Placeholder state problem & growth animation.
 // [x] Dragging should be forbidden when transition is executing.
-// [ ] List component should not have its own state.
-// [ ] Drop here visibility problem.
+// [x] List component should not have its own state.
+// [x] Drop here visibility problem.
+// [ ] Make all the tranition duration time under one variable controlling.
+// [ ] Refactor the transition state controlment, by carefully reading the log.
 // [ ] Avoid unnecessary DOM updates.
-// [ ] Cypress auto testing.
 // [ ] Extract the business logic to support other app integration.
 // [ ] Write a blog on this implementation.
 //
@@ -52,7 +53,7 @@ import {
   TopHeight,
   InputPosType,
   NoteStateType,
-  ContainerStateEnumType,
+  ContainerStateType,
 } from "../types";
 
 import {
@@ -138,6 +139,11 @@ const Grid = (props: { gridData: GridData }) => {
             left: child.getBoundingClientRect().left,
             top: child.getBoundingClientRect().top,
           };
+        }
+
+        const lastChild = item.cntRef.lastElementChild;
+        if (lastChild !== null) {
+          item.rect.bottom = lastChild.getBoundingClientRect().top;
         }
       }
     });
@@ -481,6 +487,7 @@ const Grid = (props: { gridData: GridData }) => {
       dsModified.containerStates[dsModified.selectedContainerId] = {
         cntId: dsModified.selectedContainerId,
         state: "selected",
+        transition: false,
       };
 
       dsModified.noteStates.push({
@@ -508,6 +515,7 @@ const Grid = (props: { gridData: GridData }) => {
         dsModified.containerStates[insertingContainer.cntId] = {
           cntId: insertingContainer.cntId,
           state: "inserting",
+          transition: false,
         };
 
         let topHeightList = createTopHeightListFromInsertingList(
@@ -553,7 +561,8 @@ const Grid = (props: { gridData: GridData }) => {
                 cntId: insertingContainer.cntId,
                 rowIndex: item.rowIndex,
                 state: "still",
-                transition: dsModified.justStartDragging ? false : true,
+                // transition: dsModified.justStartDragging ? false : true,
+                transition: true,
                 data: { dx: 0, dy: dt.delta, w: 0 },
               });
 
@@ -657,9 +666,8 @@ const Grid = (props: { gridData: GridData }) => {
   return (
     <div className="grid">
       {gridState.map((column, colIndex) => {
-        let needTransition = true;
         let selectedNoteRect = undefined;
-        let containerState: ContainerStateEnumType = "still";
+        let containerState: ContainerStateType | undefined = undefined;
         let noteStates: NoteStateType[] = [];
 
         if (draggingState) {
@@ -669,8 +677,6 @@ const Grid = (props: { gridData: GridData }) => {
           );
 
           if (selectedNote) selectedNoteRect = selectedNote.rect;
-
-          if (draggingState.justStartDragging) needTransition = false;
         }
 
         if (draggingState && draggingState.containerStates) {
@@ -678,7 +684,7 @@ const Grid = (props: { gridData: GridData }) => {
             (item) => item && item.cntId === colIndex
           );
 
-          if (containerStateItem) containerState = containerStateItem.state;
+          if (containerStateItem) containerState = containerStateItem;
         }
 
         if (draggingState && draggingState.noteStates) {
@@ -728,7 +734,6 @@ const Grid = (props: { gridData: GridData }) => {
             onSaveContainerRef={saveContainerRef}
             onSaveNoteRef={saveNoteRef}
             selectedNoteRect={selectedNoteRect}
-            needTransition={needTransition}
             key={colIndex}
             cntId={colIndex}
             state={containerState}

@@ -3,34 +3,60 @@ import { NoteStateType, ContainerInterface } from "../types";
 import Note from "./note";
 
 const Container = (props: ContainerInterface) => {
-  let showPlaceholder: "none" | "drophere" | "placeholder" = "none";
+  const DEFAULT_DROP_HERE_HEIGHT = 50;
+  let showPlaceholder:
+    | "placeholder-none"
+    | "placeholder-drophere"
+    | "placeholder-normal" = "placeholder-none";
   let containerClassName = "";
   let placeholderStyle: CSSProperties = {};
-  let placeholderHeight = 50;
-  let containerStyle: CSSProperties = {
-    transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
-  };
+  let placeholderHeight = 0;
+  let transition = "none";
 
-  if (props.selectedNoteRect) {
-    placeholderHeight = props.selectedNoteRect.height;
+  if (props.state) {
+    if (props.state.state === "inserting") {
+      containerClassName = "list-inserting";
+      showPlaceholder = "placeholder-normal";
+
+      if (props.selectedNoteRect) {
+        placeholderHeight =
+          props.selectedNoteRect.height + props.selectedNoteRect.gap;
+      }
+    } else if (props.state.state === "selected") {
+      showPlaceholder = "placeholder-normal";
+
+      if (props.selectedNoteRect) {
+        placeholderHeight =
+          props.selectedNoteRect.height + props.selectedNoteRect.gap;
+      }
+
+      if (props.gridData.length === 1) {
+        showPlaceholder = "placeholder-drophere";
+      }
+    } else if (props.state.state === "still") {
+      showPlaceholder = "placeholder-none";
+      if (props.gridData.length === 0) {
+        showPlaceholder = "placeholder-drophere";
+
+        if (props.selectedNoteRect) {
+          placeholderHeight =
+            props.selectedNoteRect.height + props.selectedNoteRect.gap;
+        } else {
+          placeholderHeight = DEFAULT_DROP_HERE_HEIGHT;
+        }
+      }
+    }
+    transition = props.state.transition ? "height 0.1s ease-in" : "none";
+  } else {
+    if (props.gridData.length === 0) {
+      placeholderHeight = DEFAULT_DROP_HERE_HEIGHT;
+      showPlaceholder = "placeholder-drophere";
+    }
   }
-
   placeholderStyle = {
+    transition: `${transition}`,
     height: `${placeholderHeight}px`,
   };
-
-  if (props.state === "inserting") {
-    containerClassName = "list-inserting";
-  } else if (props.state === "selected") {
-  }
-  if (props.state !== "still") showPlaceholder = "placeholder";
-
-  if (
-    (props.gridData.length === 0 && props.state !== "inserting") ||
-    (props.gridData.length === 1 && props.state === "selected")
-  ) {
-    showPlaceholder = "drophere";
-  }
 
   const saveContainerRef = (element: HTMLDivElement | null) => {
     if (element) {
@@ -39,12 +65,9 @@ const Container = (props: ContainerInterface) => {
   };
 
   return (
-    <div
-      ref={saveContainerRef}
-      className={`list ${containerClassName}`}
-      style={containerStyle}
-    >
+    <div ref={saveContainerRef} className={`list ${containerClassName}`}>
       {props.gridData.map((note, rowIndex) => {
+        console.log("Container: ", props.cntId, props.state);
         let noteState: NoteStateType = {
           cntId: props.cntId,
           rowIndex: rowIndex,
@@ -72,13 +95,11 @@ const Container = (props: ContainerInterface) => {
           />
         );
       })}
-      {showPlaceholder !== "none" ? (
+      {
         <div className={showPlaceholder} style={placeholderStyle}>
-          {showPlaceholder === "drophere" ? "Drop here" : ""}
+          {showPlaceholder === "placeholder-drophere" ? "Drop here" : ""}
         </div>
-      ) : (
-        <></>
-      )}
+      }
     </div>
   );
 };

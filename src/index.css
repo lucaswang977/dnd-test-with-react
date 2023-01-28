@@ -113,7 +113,7 @@ h6 {
   transition: transform 0.1s ease-out;
 }
 
-.drophere {
+.placeholder-drophere {
   display: grid;
   justify-content: center;
   align-items: center;
@@ -123,6 +123,10 @@ h6 {
   font-size: 0.8rem;
   border: gray dotted 1px;
   border-radius: 6px;
+}
+
+.placeholder-none {
+  height: 0px;
 }
 
 .note .text {

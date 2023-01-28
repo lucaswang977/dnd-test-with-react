@@ -31,6 +31,17 @@ export const useInputEvent = (refs: HTMLElement[]): [InputPosType, boolean] => {
   const handleMouseDown = (ev: MouseEvent) => {
     setInputStarted((started) => {
       if (!started) {
+        if (refs) {
+          const ref = refs.find((item) =>
+            isPosInRect(
+              { x: ev.clientX, y: ev.clientY },
+              item.getBoundingClientRect()
+            )
+          );
+          if (ref === undefined) {
+            return started;
+          }
+        }
         window.addEventListener("mouseup", handleMouseUp);
         window.addEventListener("mousemove", handleMouseMove);
         setInputPos({

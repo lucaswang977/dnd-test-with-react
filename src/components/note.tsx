@@ -24,6 +24,7 @@ const Note = (props: NoteInterface) => {
       transform: `translateY(${props.state.data.dy}px)`,
     };
   }
+  console.log("Note: ", props.cntId, props.rowIndex, props.state.state);
   return (
     <div
       ref={saveNoteRef}
