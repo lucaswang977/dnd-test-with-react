@@ -86,17 +86,11 @@ h6 {
   width: 250px;
   border: 1px solid #fcbf49;
   height: fit-content;
+  transition: background 100ms ease-out;
 }
 
 .list-inserting {
   background-color: aquamarine;
-}
-
-.list-inserting-entering {
-  transition: background 100ms ease-in;
-}
-.list-inserting-exiting {
-  transition: background 100ms ease-out;
 }
 
 .note {
@@ -119,7 +113,7 @@ h6 {
   transition: transform 0.1s ease-out;
 }
 
-.placeholder {
+.drophere {
   display: grid;
   justify-content: center;
   align-items: center;
@@ -127,7 +121,6 @@ h6 {
   font-family: Helvetica, sans-serif;
   font-style: italic;
   font-size: 0.8rem;
-  height: 5rem;
   border: gray dotted 1px;
   border-radius: 6px;
 }

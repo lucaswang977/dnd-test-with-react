@@ -52,7 +52,7 @@ import {
   TopHeight,
   InputPosType,
   NoteStateType,
-  ListStateEnumType,
+  ContainerStateEnumType,
 } from "../types";
 
 import {
@@ -152,22 +152,23 @@ const Grid = (props: { gridData: GridData }) => {
           });
         });
         const selectedNote =
-          newGridData[draggingState.selectedListId][
+          newGridData[draggingState.selectedContainerId][
             draggingState.selectedRowIndex
           ];
 
         // Remove the note from the selected list
-        newGridData[draggingState.selectedListId] = removeElementByIndex(
-          newGridData[draggingState.selectedListId],
+        newGridData[draggingState.selectedContainerId] = removeElementByIndex(
+          newGridData[draggingState.selectedContainerId],
           draggingState.selectedRowIndex
         );
 
         // Insert into the new list
-        newGridData[draggingState.insertingListId] = insertElementIntoArray(
-          newGridData[draggingState.insertingListId],
-          draggingState.insertingRowIndex,
-          selectedNote
-        );
+        newGridData[draggingState.insertingContainerId] =
+          insertElementIntoArray(
+            newGridData[draggingState.insertingContainerId],
+            draggingState.insertingRowIndex,
+            selectedNote
+          );
 
         return newGridData;
       });
@@ -179,13 +180,17 @@ const Grid = (props: { gridData: GridData }) => {
   };
 
   const createTopHeightListFromInsertingList = (
-    selectedList: ContainerRef,
-    insertingList: ContainerRef,
+    selectedContainer: ContainerRef,
+    insertingContainer: ContainerRef,
     selectedRowIndex: number
   ) => {
     let topHeightList: TopHeight[] = [];
     noteRefs.current.forEach((item) => {
-      if (insertingList && item.cntId === insertingList.cntId && item.rect) {
+      if (
+        insertingContainer &&
+        item.cntId === insertingContainer.cntId &&
+        item.rect
+      ) {
         topHeightList.push({
           id: item.rowIndex,
           top: item.rect.top,
@@ -194,7 +199,7 @@ const Grid = (props: { gridData: GridData }) => {
       }
     });
 
-    if (insertingList.cntId === selectedList.cntId) {
+    if (insertingContainer.cntId === selectedContainer.cntId) {
       topHeightList = removeItemFromTopHeightList(
         selectedRowIndex,
         topHeightList
@@ -248,9 +253,11 @@ const Grid = (props: { gridData: GridData }) => {
     const selectedNote = noteRefs.current.find(
       (item) => item.cntId === cntId && item.rowIndex === rowIndex
     );
-    const selectedList = cntRefs.current.find((item) => item.cntId === cntId);
+    const selectedContainer = cntRefs.current.find(
+      (item) => item.cntId === cntId
+    );
 
-    return [selectedList, selectedNote];
+    return [selectedContainer, selectedNote];
   };
 
   const calcTopHeightDeltaByInsertingPos = (
@@ -304,6 +311,17 @@ const Grid = (props: { gridData: GridData }) => {
     ];
   };
 
+  const isDraggingLengthNotEnough = (
+    origPos: { x: number; y: number },
+    curPos: { x: number; y: number }
+  ): boolean => {
+    if (Math.abs(origPos.x - curPos.x) + Math.abs(origPos.y - curPos.y) <= 10) {
+      return true;
+    }
+
+    return false;
+  };
+
   // We will save current visuall state of every note when mousedown is triggered
   const onNoteSelected = () => {
     if (draggingState) return;
@@ -329,12 +347,12 @@ const Grid = (props: { gridData: GridData }) => {
     if (selectedItem.rect === undefined) return;
 
     const ds: DraggingStateType = {
-      selectedListId: selectedItem.cntId,
+      selectedContainerId: selectedItem.cntId,
       selectedRowIndex: selectedItem.rowIndex,
       selectedRect: selectedItem.rect,
       mouseDownX: inputPos.x,
       mouseDownY: inputPos.y,
-      insertingListId: selectedItem.cntId,
+      insertingContainerId: selectedItem.cntId,
       insertingRowIndex: selectedItem.rowIndex,
       justStartDragging: true,
       releasingState: false,
@@ -351,13 +369,13 @@ const Grid = (props: { gridData: GridData }) => {
     console.log(
       "Note released:",
       inputPos,
-      draggingState.selectedListId,
+      draggingState.selectedContainerId,
       draggingState.selectedRowIndex
     );
 
     const selectedNoteRef = noteRefs.current.find(
       (item) =>
-        item.cntId === draggingState.selectedListId &&
+        item.cntId === draggingState.selectedContainerId &&
         item.rowIndex === draggingState.selectedRowIndex
     );
 
@@ -385,7 +403,7 @@ const Grid = (props: { gridData: GridData }) => {
         draggingState
       );
 
-      const insertingList = findInsertingList(
+      const insertingContainer = findInsertingList(
         selecteNoteDeltaPos.centerX,
         selecteNoteDeltaPos.centerY
       );
@@ -394,8 +412,8 @@ const Grid = (props: { gridData: GridData }) => {
         ...draggingState,
       };
 
-      if (insertingList === undefined) {
-        ds.insertingListId = ds.selectedListId;
+      if (insertingContainer === undefined) {
+        ds.insertingContainerId = ds.selectedContainerId;
         ds.insertingRowIndex = ds.selectedRowIndex;
       }
 
@@ -425,31 +443,31 @@ const Grid = (props: { gridData: GridData }) => {
 
     // Simulate a little gravity
     if (
-      Math.abs(draggingState.mouseDownX - inputPos.x) +
-        Math.abs(draggingState.mouseDownY - inputPos.y) <=
-      10
-    ) {
+      isDraggingLengthNotEnough(
+        { x: draggingState.mouseDownX, y: draggingState.mouseDownY },
+        inputPos
+      )
+    )
       return;
-    }
 
     setDraggingState((ds) => {
       if (ds === undefined || !cntRefs.current) return ds;
 
       const dsModified = { ...ds };
-      dsModified.listStates = [];
+      dsModified.containerStates = [];
       dsModified.noteStates = [];
       dsModified.releasingNoteStates = [];
 
-      const [selectedList, selectedNote] = findSelectedNoteAndList(
-        ds.selectedListId,
+      const [selectedContainer, selectedNote] = findSelectedNoteAndList(
+        ds.selectedContainerId,
         ds.selectedRowIndex
       );
 
       if (
         !selectedNote ||
-        !selectedList ||
+        !selectedContainer ||
         !selectedNote.rect ||
-        !selectedList.rect
+        !selectedContainer.rect
       )
         return ds;
 
@@ -459,6 +477,11 @@ const Grid = (props: { gridData: GridData }) => {
         inputPos,
         dsModified
       );
+
+      dsModified.containerStates[dsModified.selectedContainerId] = {
+        cntId: dsModified.selectedContainerId,
+        state: "selected",
+      };
 
       dsModified.noteStates.push({
         cntId: selectedNote.cntId,
@@ -474,22 +497,22 @@ const Grid = (props: { gridData: GridData }) => {
 
       // Calculate the belowed notes' transforming data when the selected note
       // is being dragged on to the list.
-      const insertingList = findInsertingList(
+      const insertingContainer = findInsertingList(
         selecteNoteDeltaPos.centerX,
         selecteNoteDeltaPos.centerY
       );
 
       // Selected note is inside a list
-      if (insertingList) {
-        dsModified.insertingListId = insertingList.cntId;
-        dsModified.listStates.push({
-          cntId: insertingList.cntId,
+      if (insertingContainer) {
+        dsModified.insertingContainerId = insertingContainer.cntId;
+        dsModified.containerStates[insertingContainer.cntId] = {
+          cntId: insertingContainer.cntId,
           state: "inserting",
-        });
+        };
 
         let topHeightList = createTopHeightListFromInsertingList(
-          selectedList,
-          insertingList,
+          selectedContainer,
+          insertingContainer,
           dsModified.selectedRowIndex
         );
 
@@ -502,32 +525,32 @@ const Grid = (props: { gridData: GridData }) => {
             selectedNote.rect.height,
             selectedNote.rect.gap,
             selectedNote.rect.top + inputPos.y - dsModified.mouseDownY,
-            selectedList.firstChildTopLeft
-              ? selectedList.firstChildTopLeft.top
+            selectedContainer.firstChildTopLeft
+              ? selectedContainer.firstChildTopLeft.top
               : 0
           );
 
         dsModified.insertingRowIndex = insertingIndex;
 
-        if (insertingList.rect && insertingList.firstChildTopLeft) {
+        if (insertingContainer.rect && insertingContainer.firstChildTopLeft) {
           dsModified.releasingNoteStates.push({
             cntId: selectedNote.cntId,
             rowIndex: selectedNote.rowIndex,
             state: "dragging",
             transition: true,
             data: {
-              dx: insertingList.rect.left - selectedList.rect.left,
+              dx: insertingContainer.rect.left - selectedContainer.rect.left,
               dy: insertingNoteTop - selectedNote.rect.top,
               w: dsModified.selectedRect.width,
             },
           });
         }
         noteRefs.current.forEach((item) => {
-          if (item.cntId === insertingList.cntId && delta) {
+          if (item.cntId === insertingContainer.cntId && delta) {
             const dt = delta.find((i) => i.id === item.rowIndex);
             if (dt && dsModified.noteStates && dsModified.releasingNoteStates) {
               dsModified.noteStates.push({
-                cntId: insertingList.cntId,
+                cntId: insertingContainer.cntId,
                 rowIndex: item.rowIndex,
                 state: "still",
                 transition: dsModified.justStartDragging ? false : true,
@@ -535,7 +558,7 @@ const Grid = (props: { gridData: GridData }) => {
               });
 
               dsModified.releasingNoteStates.push({
-                cntId: insertingList.cntId,
+                cntId: insertingContainer.cntId,
                 rowIndex: item.rowIndex,
                 state: "still",
                 transition: true,
@@ -546,10 +569,12 @@ const Grid = (props: { gridData: GridData }) => {
         });
       } else {
         // When the selected note is outside of any list.
-        if (dsModified.insertingListId !== dsModified.selectedListId) {
+        if (
+          dsModified.insertingContainerId !== dsModified.selectedContainerId
+        ) {
           noteRefs.current.forEach((item) => {
             if (
-              item.cntId === dsModified.insertingListId &&
+              item.cntId === dsModified.insertingContainerId &&
               item.rowIndex >= dsModified.insertingRowIndex &&
               dsModified.noteStates
             ) {
@@ -564,12 +589,9 @@ const Grid = (props: { gridData: GridData }) => {
           });
         }
 
-        dsModified.listStates = [
-          { cntId: dsModified.selectedListId, state: "selected" },
-        ];
         noteRefs.current.forEach((item) => {
           if (
-            item.cntId === dsModified.selectedListId &&
+            item.cntId === dsModified.selectedContainerId &&
             item.rowIndex > dsModified.selectedRowIndex &&
             dsModified.noteStates &&
             dsModified.releasingNoteStates &&
@@ -635,15 +657,14 @@ const Grid = (props: { gridData: GridData }) => {
   return (
     <div className="grid">
       {gridState.map((column, colIndex) => {
-        let showPlaceholder = false;
         let needTransition = true;
         let selectedNoteRect = undefined;
-        let listState: ListStateEnumType = "still";
+        let containerState: ContainerStateEnumType = "still";
         let noteStates: NoteStateType[] = [];
 
         if (draggingState) {
           const [, selectedNote] = findSelectedNoteAndList(
-            draggingState.selectedListId,
+            draggingState.selectedContainerId,
             draggingState.selectedRowIndex
           );
 
@@ -651,19 +672,13 @@ const Grid = (props: { gridData: GridData }) => {
 
           if (draggingState.justStartDragging) needTransition = false;
         }
-        if (
-          column.length === 0 &&
-          !(draggingState && draggingState.insertingListId === colIndex)
-        ) {
-          showPlaceholder = true;
-        }
 
-        if (draggingState && draggingState.listStates) {
-          const listStateItem = draggingState.listStates.find(
-            (item) => item.cntId === colIndex
+        if (draggingState && draggingState.containerStates) {
+          const containerStateItem = draggingState.containerStates.find(
+            (item) => item && item.cntId === colIndex
           );
 
-          if (listStateItem) listState = listStateItem.state;
+          if (containerStateItem) containerState = containerStateItem.state;
         }
 
         if (draggingState && draggingState.noteStates) {
@@ -716,10 +731,9 @@ const Grid = (props: { gridData: GridData }) => {
             needTransition={needTransition}
             key={colIndex}
             cntId={colIndex}
-            state={listState}
+            state={containerState}
             noteStates={noteStates}
             gridData={column}
-            showPlaceholder={showPlaceholder}
           />
         );
       })}

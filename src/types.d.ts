@@ -21,8 +21,8 @@ type ElementRectType = {
   gap: number;
 };
 
-type ListStateEnumType = "still" | "inserting" | "selected";
-type ListStateType = { cntId: number; state: ListStateEnumType };
+type ContainerStateEnumType = "still" | "inserting" | "selected";
+type ContainerStateType = { cntId: number; state: ContainerStateEnumType };
 
 type NoteStateEnumType = "still" | "dragging";
 type NoteStateType = {
@@ -35,7 +35,7 @@ type NoteStateType = {
 
 export type DraggingStateType = {
   // List is the vertical line, every list contains some notes.
-  selectedListId: number;
+  selectedContainerId: number;
   selectedRowIndex: number;
   selectedRect: ElementRectType;
 
@@ -43,10 +43,10 @@ export type DraggingStateType = {
   mouseDownX: number;
   mouseDownY: number;
   // Inserting related state
-  insertingListId: number;
+  insertingContainerId: number;
   insertingRowIndex: number;
 
-  listStates?: ListStateType[];
+  containerStates?: ContainerStateType[];
   noteStates?: NoteStateType[];
   releasingNoteStates?: NoteStateType[];
 
@@ -73,7 +73,7 @@ export type TopHeight = { id: number; top: number; height: number };
 export interface ContainerInterface {
   cntId: number;
   gridData: Note[];
-  state: ListStateEnumType;
+  state: ContainerStateEnumType;
   selectedNoteRect: ElementRectType | undefined;
   needTransition: boolean;
   onSaveContainerRef: (cntId: number, element: HTMLElement | null) => void;
@@ -82,7 +82,6 @@ export interface ContainerInterface {
     rowIndex: number,
     element: HTMLElement | null
   ) => void;
-  showPlaceholder: boolean;
   noteStates: NoteStateType[];
 }
 

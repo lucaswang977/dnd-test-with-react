@@ -1,94 +1,39 @@
-import { useState, useRef, useEffect, CSSProperties } from "react";
+import { CSSProperties } from "react";
 import { NoteStateType, ContainerInterface } from "../types";
 import Note from "./note";
 
 const Container = (props: ContainerInterface) => {
-  let listClassName = "";
-  let listStyle: CSSProperties = {};
-
-  const [transitionState, setTransitionState] = useState<string>("still");
-  const [refresh, setRefresh] = useState<boolean>(false);
-  const cntRef = useRef<HTMLDivElement>();
-  const handleTransitionEnd = () => {
-    setRefresh(true);
+  let showPlaceholder: "none" | "drophere" | "placeholder" = "none";
+  let containerClassName = "";
+  let placeholderStyle: CSSProperties = {};
+  let placeholderHeight = 50;
+  let containerStyle: CSSProperties = {
+    transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
   };
 
-  useEffect(() => {
-    if (refresh) {
-      if (transitionState === "exit-inserting") {
-        setTransitionState("still");
-      } else if (transitionState === "enter-inserting") {
-        setTransitionState("inserting");
-      }
-      setRefresh(false);
-    }
-  }, [refresh]);
-
-  if (props.state && transitionState !== props.state) {
-    if (props.state === "still" && transitionState === "inserting") {
-      setTransitionState("exit-inserting");
-    } else if (props.state === "inserting" && transitionState === "still") {
-      setTransitionState("enter-inserting");
-    } else if (props.state === "selected") {
-      setTransitionState("selected");
-    }
+  if (props.selectedNoteRect) {
+    placeholderHeight = props.selectedNoteRect.height;
   }
 
-  useEffect(() => {
-    if (cntRef.current) {
-      cntRef.current.addEventListener("transitionend", handleTransitionEnd);
-    }
+  placeholderStyle = {
+    height: `${placeholderHeight}px`,
+  };
 
-    return () => {
-      if (cntRef.current)
-        cntRef.current.removeEventListener(
-          "transitionend",
-          handleTransitionEnd
-        );
-    };
-  }, []);
+  if (props.state === "inserting") {
+    containerClassName = "list-inserting";
+  } else if (props.state === "selected") {
+  }
+  if (props.state !== "still") showPlaceholder = "placeholder";
 
-  if (transitionState === "enter-inserting") {
-    listClassName = "list-inserting list-inserting-entering";
-    if (props.selectedNoteRect) {
-      listStyle = {
-        transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
-        paddingBottom: `${
-          props.selectedNoteRect.height + props.selectedNoteRect.gap
-        }px`,
-      };
-    }
-  } else if (transitionState === "exit-inserting") {
-    listClassName = "list-inserting-exiting";
-    if (props.selectedNoteRect) {
-      listStyle = {
-        transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
-      };
-    }
-  } else if (transitionState === "inserting") {
-    listClassName = "list-inserting";
-    if (props.selectedNoteRect) {
-      listStyle = {
-        transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
-        paddingBottom: `${
-          props.selectedNoteRect.height + props.selectedNoteRect.gap
-        }px`,
-      };
-    }
-  } else if (transitionState === "selected") {
-    if (props.selectedNoteRect) {
-      listStyle = {
-        transition: `${props.needTransition}?"padding 0.1s ease-in":"none"}`,
-        paddingBottom: `${
-          props.selectedNoteRect.height + props.selectedNoteRect.gap
-        }px`,
-      };
-    }
+  if (
+    (props.gridData.length === 0 && props.state !== "inserting") ||
+    (props.gridData.length === 1 && props.state === "selected")
+  ) {
+    showPlaceholder = "drophere";
   }
 
   const saveContainerRef = (element: HTMLDivElement | null) => {
     if (element) {
-      cntRef.current = element;
       props.onSaveContainerRef(props.cntId, element);
     }
   };
@@ -96,8 +41,8 @@ const Container = (props: ContainerInterface) => {
   return (
     <div
       ref={saveContainerRef}
-      className={`list ${listClassName}`}
-      style={listStyle}
+      className={`list ${containerClassName}`}
+      style={containerStyle}
     >
       {props.gridData.map((note, rowIndex) => {
         let noteState: NoteStateType = {
@@ -127,8 +72,10 @@ const Container = (props: ContainerInterface) => {
           />
         );
       })}
-      {props.showPlaceholder ? (
-        <div className="placeholder">Drop here</div>
+      {showPlaceholder !== "none" ? (
+        <div className={showPlaceholder} style={placeholderStyle}>
+          {showPlaceholder === "drophere" ? "Drop here" : ""}
+        </div>
       ) : (
         <></>
       )}
