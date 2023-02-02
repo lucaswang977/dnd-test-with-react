@@ -8,10 +8,15 @@ export type Note = {
 export type GridData = Note[][];
 
 export type InputPosType = {
-  x: number;
-  y: number;
+  cur: { x: number; y: number };
+  last?: { x: number; y: number };
 };
 
+export type InputStateType = {
+  started: boolean;
+  mouseDownPos?: { x: number; y: number };
+  mouseUpPos?: { x: number; y: number };
+};
 type ElementRectType = {
   top: number;
   bottom: number;
@@ -69,7 +74,6 @@ export type ContainerRef = {
   cntId: number;
   cntRef: HTMLElement | null;
   rect?: ElementRectType;
-  firstChildTopLeft?: { top: number; left: number };
 };
 
 export type TopHeight = { id: number; top: number; height: number };
@@ -77,7 +81,7 @@ export type TopHeight = { id: number; top: number; height: number };
 export interface ContainerInterface {
   cntId: number;
   gridData: Note[];
-  state: ContainerStateType | undefined;
+  state: ContainerStateType;
   selectedNoteRect: ElementRectType | undefined;
   onSaveContainerRef: (cntId: number, element: HTMLElement | null) => void;
   onSaveNoteRef: (

@@ -1,115 +1,81 @@
-import { useState, useEffect } from "react";
-import { InputPosType } from "../types";
+import { useEffect } from "react";
 import { isPosInRect } from "../utilities";
 
 // Support both mouse event & touch event.
 // InputPos will only change once touch is started or mouse is down.
-export const useInputEvent = (refs: HTMLElement[]): [InputPosType, boolean] => {
-  const [inputPos, setInputPos] = useState<InputPosType>({ x: 0, y: 0 });
-  const [inputStarted, setInputStarted] = useState<boolean>(false);
-
-  const handleMouseUp = () => {
-    setInputStarted((started) => {
-      if (started) {
-        window.removeEventListener("mouseup", handleMouseUp);
-        window.removeEventListener("mousemove", handleMouseMove);
-        return false;
-      }
-      return started;
-    });
+export const useInputEvent = (
+  refs: HTMLElement[],
+  inputStateCb: (started: boolean, pos: { x: number; y: number }) => void,
+  inputMoveCb: (pos: { x: number; y: number }) => void
+) => {
+  const handleMouseUp = (ev: MouseEvent) => {
+    console.log("setInputStarted(mouse up)");
+    window.removeEventListener("mouseup", handleMouseUp);
+    window.removeEventListener("mousemove", handleMouseMove);
+    inputStateCb(false, { x: ev.clientX, y: ev.clientY });
   };
 
   const handleMouseMove = (ev: MouseEvent) => {
-    setInputPos(() => {
-      return {
-        x: ev.clientX,
-        y: ev.clientY,
-      };
+    console.log("setInputPos(mouse move)");
+    inputMoveCb({
+      x: ev.clientX,
+      y: ev.clientY,
     });
   };
 
   const handleMouseDown = (ev: MouseEvent) => {
-    setInputStarted((started) => {
-      if (!started) {
-        if (refs) {
-          const ref = refs.find((item) =>
-            isPosInRect(
-              { x: ev.clientX, y: ev.clientY },
-              item.getBoundingClientRect()
-            )
-          );
-          if (ref === undefined) {
-            return started;
-          }
-        }
+    console.log("setInputStarted(mouse down)");
+    if (refs) {
+      const ref = refs.find((item) =>
+        isPosInRect(
+          { x: ev.clientX, y: ev.clientY },
+          item.getBoundingClientRect()
+        )
+      );
+      if (ref !== undefined) {
         window.addEventListener("mouseup", handleMouseUp);
         window.addEventListener("mousemove", handleMouseMove);
-        setInputPos({
-          x: ev.clientX,
-          y: ev.clientY,
-        });
-
-        return true;
+        inputStateCb(true, { x: ev.clientX, y: ev.clientY });
       }
-
-      return started;
-    });
+    }
   };
 
   const handleTouchMove = (ev: TouchEvent) => {
-    setInputPos(() => {
-      const touch = ev.touches[0];
-      ev.preventDefault();
-      return {
-        x: touch.clientX,
-        y: touch.clientY,
-      };
-    });
+    const touch = ev.touches[0];
+    ev.preventDefault();
+    inputMoveCb({ x: touch.clientX, y: touch.clientY });
   };
 
   const handleTouchStart = (ev: TouchEvent) => {
-    setInputStarted((started) => {
-      let focused = false;
-      const touch = ev.touches[0];
-      if (refs) {
-        const ref = refs.find((item) =>
-          isPosInRect(
-            { x: touch.clientX, y: touch.clientY },
-            item.getBoundingClientRect()
-          )
-        );
-        if (ref !== undefined) {
-          focused = true;
-        }
+    let focused = false;
+    const touch = ev.touches[0];
+    if (refs) {
+      const ref = refs.find((item) =>
+        isPosInRect(
+          { x: touch.clientX, y: touch.clientY },
+          item.getBoundingClientRect()
+        )
+      );
+      if (ref !== undefined) {
+        focused = true;
       }
-      if (!started && focused) {
-        ev.preventDefault();
-        window.addEventListener("touchmove", handleTouchMove, {
-          passive: false,
-        });
-        window.addEventListener("touchend", handleTouchEnd);
+    }
+    if (focused) {
+      ev.preventDefault();
+      window.addEventListener("touchmove", handleTouchMove, {
+        passive: false,
+      });
+      window.addEventListener("touchend", handleTouchEnd);
 
-        setInputPos({
-          x: touch.clientX,
-          y: touch.clientY,
-        });
-
-        return true;
-      }
-      return started;
-    });
+      inputStateCb(true, { x: touch.clientX, y: touch.clientY });
+    }
   };
 
-  const handleTouchEnd = () => {
-    setInputStarted((started) => {
-      if (started) {
-        window.removeEventListener("touchmove", handleTouchMove);
-        window.removeEventListener("touchend", handleTouchEnd);
-        return false;
-      }
-
-      return started;
-    });
+  const handleTouchEnd = (ev: TouchEvent) => {
+    const touch = ev.touches[0];
+    window.removeEventListener("touchmove", handleTouchMove);
+    window.removeEventListener("touchend", handleTouchEnd);
+    inputStateCb(false, { x: touch.clientX, y: touch.clientY });
   };
 
   useEffect(() => {
@@ -120,6 +86,4 @@ export const useInputEvent = (refs: HTMLElement[]): [InputPosType, boolean] => {
       window.removeEventListener("touchstart", handleTouchStart);
     };
   }, []);
-
-  return [inputPos, inputStarted];
 };

@@ -3,6 +3,12 @@ import { NoteInterface } from "../types";
 
 const Note = (props: NoteInterface) => {
   let noteStyleName = "no-transition";
+  // console.log(
+  //   "Note component re-render.",
+  //   props.cntId,
+  //   props.rowIndex,
+  //   props.state.state
+  // );
   if (props.state.transition) {
     noteStyleName = "with-transition";
   }
@@ -24,7 +30,6 @@ const Note = (props: NoteInterface) => {
       transform: `translateY(${props.state.data.dy}px)`,
     };
   }
-  console.log("Note: ", props.cntId, props.rowIndex, props.state.state);
   return (
     <div
       ref={saveNoteRef}

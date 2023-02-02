@@ -13,6 +13,7 @@ const Container = (props: ContainerInterface) => {
   let placeholderHeight = 0;
   let transition = "none";
 
+  // console.log("Container component re-render.", props.cntId, props.state.state);
   if (props.state) {
     if (props.state.state === "inserting") {
       containerClassName = "list-inserting";
@@ -64,10 +65,11 @@ const Container = (props: ContainerInterface) => {
     }
   };
 
+  console.log("container: ", props.gridData);
+
   return (
     <div ref={saveContainerRef} className={`list ${containerClassName}`}>
       {props.gridData.map((note, rowIndex) => {
-        console.log("Container: ", props.cntId, props.state);
         let noteState: NoteStateType = {
           cntId: props.cntId,
           rowIndex: rowIndex,
