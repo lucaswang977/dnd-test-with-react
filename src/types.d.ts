@@ -7,15 +7,17 @@ export type Note = {
 
 export type GridData = Note[][];
 
+export type PosType = { x: number; y: number };
+
 export type InputPosType = {
-  cur: { x: number; y: number };
-  last?: { x: number; y: number };
+  cur: PosType;
+  last?: PosType;
 };
 
 export type InputStateType = {
   started: boolean;
-  mouseDownPos?: { x: number; y: number };
-  mouseUpPos?: { x: number; y: number };
+  mouseDownPos?: PosType;
+  mouseUpPos?: PosType;
 };
 type ElementRectType = {
   top: number;
@@ -27,14 +29,14 @@ type ElementRectType = {
 };
 
 type ContainerStateEnumType = "still" | "inserting" | "selected";
-type ContainerStateType = {
+type ContainerTransformStateType = {
   cntId: number;
   state: ContainerStateEnumType;
   transition: boolean;
 };
 
 type NoteStateEnumType = "still" | "dragging";
-type NoteStateType = {
+type NoteTransformStateType = {
   cntId: number;
   rowIndex: number;
   state: NoteStateEnumType;
@@ -44,23 +46,27 @@ type NoteStateType = {
 
 export type DraggingStateType = {
   // List is the vertical line, every list contains some notes.
-  selectedContainerId: number;
+  selectedContainerIndex: number;
   selectedRowIndex: number;
   selectedRect: ElementRectType;
 
-  // The position when mouse clicked down
-  mouseDownX: number;
-  mouseDownY: number;
   // Inserting related state
-  insertingContainerId: number;
+  insertingContainerIndex: number;
   insertingRowIndex: number;
 
-  containerStates?: ContainerStateType[];
-  noteStates?: NoteStateType[];
-  releasingNoteStates?: NoteStateType[];
+  // The mouse position when a note is selected
+  mouseDownPos: PosType;
 
+  // Avoid first frame transition problem
   justStartDragging: boolean;
-  releasingState: boolean;
+
+  // For the calculation when note is released
+  isOutsideOfAnyContainer: boolean;
+
+  // We calculate those states when note is being dragged.
+  noteTransformStates?: NoteTransformStateType[];
+  containerTransformStates?: ContainerTransformStateType[];
+  releasingNoteTransformStates?: NoteTransformStateType[];
 };
 
 export type NoteRef = {
@@ -81,7 +87,7 @@ export type TopHeight = { id: number; top: number; height: number };
 export interface ContainerInterface {
   cntId: number;
   gridData: Note[];
-  state: ContainerStateType;
+  state: ContainerTransformStateType;
   selectedNoteRect: ElementRectType | undefined;
   onSaveContainerRef: (cntId: number, element: HTMLElement | null) => void;
   onSaveNoteRef: (
@@ -89,13 +95,13 @@ export interface ContainerInterface {
     rowIndex: number,
     element: HTMLElement | null
   ) => void;
-  noteStates: NoteStateType[];
+  noteTransformStates: NoteTransformStateType[];
 }
 
 export interface NoteInterface {
   cntId: number;
   rowIndex: number;
-  state: NoteStateType;
+  state: NoteTransformStateType;
   noteId: number;
   noteText: string;
   onSaveNoteRef: (

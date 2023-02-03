@@ -1,5 +1,5 @@
 import { CSSProperties } from "react";
-import { NoteStateType, ContainerInterface } from "../types";
+import { NoteTransformStateType, ContainerInterface } from "../types";
 import Note from "./note";
 
 export const Container = (props: ContainerInterface) => {
@@ -68,7 +68,7 @@ export const Container = (props: ContainerInterface) => {
   return (
     <div ref={saveContainerRef} className={`list ${containerClassName}`}>
       {props.gridData.map((note, rowIndex) => {
-        let noteState: NoteStateType = {
+        let noteState: NoteTransformStateType = {
           cntId: props.cntId,
           rowIndex: rowIndex,
           transition: false,
@@ -76,8 +76,8 @@ export const Container = (props: ContainerInterface) => {
           data: { dx: 0, dy: 0, w: 0 },
         };
 
-        if (props.noteStates) {
-          const state = props.noteStates.find(
+        if (props.noteTransformStates) {
+          const state = props.noteTransformStates.find(
             (item) => item.cntId === props.cntId && item.rowIndex === rowIndex
           );
           if (state) noteState = state;
