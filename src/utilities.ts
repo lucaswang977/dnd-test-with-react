@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { TopHeight } from "./types";
 
 // To remove one element from the list, meanwhile change
@@ -107,3 +108,16 @@ export const insertElementIntoArray = <T>(
   index: number,
   element: T
 ): T[] => [...list.slice(0, index), element, ...list.slice(index)];
+
+export const useStateRef = <T>(
+  initial: T
+): [React.MutableRefObject<T>, (prop: T) => void] => {
+  const [_state, _setState] = useState<T>(initial);
+  const _stateRef = useRef<T>(_state);
+  const setState = (p: T) => {
+    _stateRef.current = p;
+    _setState(p);
+  };
+
+  return [_stateRef, setState];
+};

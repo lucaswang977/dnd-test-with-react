@@ -2,7 +2,7 @@ import { CSSProperties } from "react";
 import { NoteStateType, ContainerInterface } from "../types";
 import Note from "./note";
 
-const Container = (props: ContainerInterface) => {
+export const Container = (props: ContainerInterface) => {
   const DEFAULT_DROP_HERE_HEIGHT = 50;
   let showPlaceholder:
     | "placeholder-none"
@@ -65,8 +65,6 @@ const Container = (props: ContainerInterface) => {
     }
   };
 
-  console.log("container: ", props.gridData);
-
   return (
     <div ref={saveContainerRef} className={`list ${containerClassName}`}>
       {props.gridData.map((note, rowIndex) => {
@@ -105,5 +103,3 @@ const Container = (props: ContainerInterface) => {
     </div>
   );
 };
-
-export default Container;

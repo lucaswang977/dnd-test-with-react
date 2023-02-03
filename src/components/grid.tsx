@@ -18,6 +18,7 @@
 // [x] List component should not have its own state.
 // [x] Drop here visibility problem.
 // [x] Remove unnecessary useEffect.
+// [ ] Refactor again to remove unnecessary states or variables.
 // [ ] Make all the tranition duration time under one variable controlling.
 // [ ] Refactor the transition state controlment, by carefully reading the log.
 // [ ] Avoid unnecessary DOM updates.
@@ -42,9 +43,10 @@
 // * Container's states: still, selected, inserting
 // * Note's states: still, dragging(transform), pushing(transform), returning
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { useInputEvent } from "../hooks/input";
-import Container from "./container";
+import { useStateRef } from "../utilities";
+import { Container } from "./container";
 
 import {
   GridData,
@@ -67,20 +69,16 @@ import {
 } from "../utilities";
 
 const Grid = (props: { gridData: GridData }) => {
-  const [gridState, setGridState] = useState(props.gridData);
-  const [draggingState, _setDraggingState] = useState<
+  // These two states will be accessed and modified from window event listeners
+  // So we need to save them in the refs
+  const [gridStateRef, setGridState] = useStateRef(props.gridData);
+  const [draggingStateRef, setDraggingState] = useStateRef<
     DraggingStateType | undefined
   >(undefined);
-  const draggingStateRef = useRef<DraggingStateType | undefined>(draggingState);
-  const setDraggingState = (ds: DraggingStateType | undefined) => {
-    draggingStateRef.current = ds;
-    _setDraggingState(ds);
-  };
 
   // To save all the DOMs for get the client bounding rects
   const noteRefs = useRef<NoteRef[]>([]);
   const cntRefs = useRef<ContainerRef[]>([]);
-  const hotSpots = useRef<HTMLElement[]>([]);
 
   const saveNoteRectToRefs = () => {
     // Save current rect of all the notes in the refs array
@@ -141,8 +139,7 @@ const Grid = (props: { gridData: GridData }) => {
 
   const updateGridData = () => {
     if (draggingStateRef.current) {
-      console.log("setGridState()");
-      const newGridData = gridState.map((item) => {
+      const newGridData = gridStateRef.current.map((item) => {
         return item.map((item) => {
           return { ...item };
         });
@@ -167,7 +164,6 @@ const Grid = (props: { gridData: GridData }) => {
             draggingStateRef.current.insertingRowIndex,
             selectedNote
           );
-        console.log("setDraggingState(undefined)", newGridData);
 
         setGridState(newGridData);
       }
@@ -603,7 +599,6 @@ const Grid = (props: { gridData: GridData }) => {
     dsModified.justStartDragging = false;
 
     setDraggingState(dsModified);
-    console.log("Note dragged: ", draggingStateRef.current);
   };
 
   const handleInputStarted = (
@@ -654,15 +649,19 @@ const Grid = (props: { gridData: GridData }) => {
   };
 
   //////
-  // Render starts here
+  // Re-render starts here
   //////
-  useInputEvent(hotSpots.current, handleInputStarted, handleInputMove);
+  useInputEvent(handleInputStarted, handleInputMove);
 
-  console.log("Grid component re-render.", draggingStateRef.current, gridState);
+  console.log(
+    "Grid component re-render.",
+    draggingStateRef.current,
+    gridStateRef.current
+  );
 
   return (
     <div className="grid">
-      {gridState.map((column, colIndex) => {
+      {gridStateRef.current.map((column, colIndex) => {
         let selectedNoteRect = undefined;
         let containerState: ContainerStateType = {
           cntId: colIndex,
@@ -729,19 +728,18 @@ const Grid = (props: { gridData: GridData }) => {
                 cntId: cntId,
                 noteRef: element,
               });
-              hotSpots.current.push(element);
             }
           }
         };
 
         return (
           <Container
-            onSaveContainerRef={saveContainerRef}
-            onSaveNoteRef={saveNoteRef}
-            selectedNoteRect={selectedNoteRect}
             key={colIndex}
             cntId={colIndex}
             state={containerState}
+            onSaveContainerRef={saveContainerRef}
+            onSaveNoteRef={saveNoteRef}
+            selectedNoteRect={selectedNoteRect}
             noteStates={noteStates}
             gridData={column}
           />
