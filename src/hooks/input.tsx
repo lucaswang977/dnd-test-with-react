@@ -26,12 +26,14 @@ export const useInputEvent = (
 
   const handleTouchMove = (ev: TouchEvent) => {
     const touch = ev.touches[0];
+    // To avoid scrolling
     ev.preventDefault();
     inputMoveCb({ x: touch.clientX, y: touch.clientY });
   };
 
   const handleTouchStart = (ev: TouchEvent) => {
     const touch = ev.touches[0];
+    // To avoid scrolling
     ev.preventDefault();
     window.addEventListener("touchmove", handleTouchMove, {
       passive: false,
@@ -42,7 +44,7 @@ export const useInputEvent = (
   };
 
   const handleTouchEnd = (ev: TouchEvent) => {
-    const touch = ev.touches[0];
+    const touch = ev.changedTouches[ev.changedTouches.length - 1];
     window.removeEventListener("touchmove", handleTouchMove);
     window.removeEventListener("touchend", handleTouchEnd);
     inputStateCb(false, { x: touch.clientX, y: touch.clientY });
