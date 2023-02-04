@@ -20,7 +20,7 @@
 // [x] Remove unnecessary useEffect.
 // [x] Refactor again to remove unnecessary states or variables.
 // [x] Avoid unnecessary DOM updates.
-// [ ] Fix the bug on the placeholder growth transition.
+// [x] Fix the bug on the placeholder growth transition.
 // [ ] Make all the tranition duration time under one variable controlling.
 // [ ] Refactor the transition state controlment, by carefully reading the log.
 // [ ] Extract the business logic to support other app integration.
@@ -140,30 +140,32 @@ const Grid = (props: { gridData: GridData }) => {
   };
 
   const updateGridData = () => {
-    if (draggingStateRef.current) {
+    const draggingState = draggingStateRef.current;
+    console.log("Update Grid Data.", draggingState, gridStateRef.current);
+    if (draggingState) {
       const newGridData = gridStateRef.current.map((item) => {
         return item.map((item) => {
           return { ...item };
         });
       });
-      if (draggingStateRef.current !== undefined) {
+      if (draggingState !== undefined) {
         const selectedNote =
-          newGridData[draggingStateRef.current.selectedContainerIndex][
-            draggingStateRef.current.selectedRowIndex
+          newGridData[draggingState.selectedContainerIndex][
+            draggingState.selectedRowIndex
           ];
 
         // Remove the note from the selected list
-        newGridData[draggingStateRef.current.selectedContainerIndex] =
+        newGridData[draggingState.selectedContainerIndex] =
           removeElementByIndex(
-            newGridData[draggingStateRef.current.selectedContainerIndex],
-            draggingStateRef.current.selectedRowIndex
+            newGridData[draggingState.selectedContainerIndex],
+            draggingState.selectedRowIndex
           );
 
         // Insert into the new list
-        newGridData[draggingStateRef.current.insertingContainerIndex] =
+        newGridData[draggingState.insertingContainerIndex] =
           insertElementIntoArray(
-            newGridData[draggingStateRef.current.insertingContainerIndex],
-            draggingStateRef.current.insertingRowIndex,
+            newGridData[draggingState.insertingContainerIndex],
+            draggingState.insertingRowIndex,
             selectedNote
           );
 
@@ -342,9 +344,11 @@ const Grid = (props: { gridData: GridData }) => {
     } else {
       // When mouse is up, current state is checked to see if we should update
       // the grid data in order to update the entire grid state.
+      console.log("Note released:", inputPos, draggingState);
 
       // justStartDragging is true means we don't have a valid dragging action yet.
       if (draggingState === undefined || draggingState.justStartDragging) {
+        setDraggingState(undefined);
         return;
       }
 
@@ -353,10 +357,12 @@ const Grid = (props: { gridData: GridData }) => {
         draggingState.selectedRowIndex
       );
 
+      let ds: DraggingStateType | undefined = undefined;
+
+      // If we have selected note, there will be a transition animation be
+      // executed when the note is released.
       if (selectedNoteRef !== undefined && selectedNoteRef.noteRef) {
-        const ds: DraggingStateType = {
-          ...draggingState,
-        };
+        ds = { ...draggingState };
 
         // If mouse pos is outside any list, back to the selected position.
         if (ds.isOutsideOfAnyContainer) {
@@ -364,45 +370,38 @@ const Grid = (props: { gridData: GridData }) => {
           ds.insertingRowIndex = ds.selectedRowIndex;
         }
 
-        // If we have releasing transition, we have to wait for
-        // the end of transition then update the grid data
-        let needRefreshImmediately = true;
+        selectedNoteRef.noteRef.addEventListener(
+          "transitionend",
+          handleSelectedNoteTransitionEnd
+        );
+        selectedNoteRef.noteRef.addEventListener(
+          "transitioncancel",
+          handleSelectedNoteTransitionEnd
+        );
 
-        if (
-          draggingState.releasingNoteTransformStates &&
-          draggingState.releasingNoteTransformStates.length > 0
-        ) {
-          selectedNoteRef.noteRef.addEventListener(
-            "transitionend",
-            handleSelectedNoteTransitionEnd
-          );
-          selectedNoteRef.noteRef.addEventListener(
-            "transitioncancel",
-            handleSelectedNoteTransitionEnd
-          );
+        ds.noteTransformStates = ds.releasingNoteTransformStates;
+        ds.releasingNoteTransformStates = undefined;
 
-          ds.noteTransformStates = ds.releasingNoteTransformStates;
-          ds.releasingNoteTransformStates = undefined;
-          ds.containerTransformStates = [];
-          // TODO: Fix the container transition bug
-          (ds.containerTransformStates[ds.selectedContainerIndex] = {
-            cntId: ds.selectedContainerIndex,
-            state: "still",
-            transition: true,
-          }),
-            (needRefreshImmediately = false);
-        }
-        setDraggingState(ds);
-        if (needRefreshImmediately) {
-          updateGridData();
-        }
+        ds.containerTransformStates = [];
+
+        ds.containerTransformStates[ds.selectedContainerIndex] = {
+          cntId: ds.selectedContainerIndex,
+          state: "still",
+          transition: true,
+        };
+
+        // Because the container is in 'inserting' state,
+        // placeholder is stretched at this moment, so when releasing
+        // we should keep the placeholder stretched until transition
+        // animation end, until grid data is updated at the last frame.
+        ds.containerTransformStates[ds.insertingContainerIndex] = {
+          cntId: ds.insertingContainerIndex,
+          state: "inserting",
+          transition: true,
+        };
       }
-      console.log(
-        "Note released:",
-        inputPos,
-        draggingState.selectedContainerIndex,
-        draggingState.selectedRowIndex
-      );
+
+      setDraggingState(ds);
     }
   };
 
@@ -445,7 +444,7 @@ const Grid = (props: { gridData: GridData }) => {
     dsModified.containerTransformStates[dsModified.selectedContainerIndex] = {
       cntId: dsModified.selectedContainerIndex,
       state: "selected",
-      transition: false,
+      transition: dsModified.justStartDragging ? false : true,
     };
 
     // Set the selected note's transform state
@@ -479,7 +478,7 @@ const Grid = (props: { gridData: GridData }) => {
       dsModified.containerTransformStates[insertingContainer.cntId] = {
         cntId: insertingContainer.cntId,
         state: "inserting",
-        transition: false,
+        transition: dsModified.justStartDragging ? false : true,
       };
       dsModified.isOutsideOfAnyContainer = false;
 
