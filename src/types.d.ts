@@ -33,6 +33,7 @@ type ContainerTransformStateType = {
   cntId: number;
   state: ContainerStateEnumType;
   transition: boolean;
+  duration: number;
 };
 
 type NoteStateEnumType = "still" | "dragging";
@@ -41,6 +42,7 @@ type NoteTransformStateType = {
   rowIndex: number;
   state: NoteStateEnumType;
   transition: boolean;
+  duration: number;
   data: { dx: number; dy: number; w: number };
 };
 

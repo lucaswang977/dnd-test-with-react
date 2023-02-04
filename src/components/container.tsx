@@ -47,7 +47,9 @@ export const Container = (props: ContainerInterface) => {
         }
       }
     }
-    transition = props.state.transition ? "height 0.1s ease-in" : "none";
+    transition = props.state.transition
+      ? `height ${props.state.duration}s ease-in`
+      : "none";
   } else {
     if (props.gridData.length === 0) {
       placeholderHeight = DEFAULT_DROP_HERE_HEIGHT;
@@ -74,6 +76,7 @@ export const Container = (props: ContainerInterface) => {
           transition: false,
           state: "still",
           data: { dx: 0, dy: 0, w: 0 },
+          duration: 0.1,
         };
 
         if (props.noteTransformStates) {

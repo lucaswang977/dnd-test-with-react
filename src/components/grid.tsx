@@ -21,7 +21,7 @@
 // [x] Refactor again to remove unnecessary states or variables.
 // [x] Avoid unnecessary DOM updates.
 // [x] Fix the bug on the placeholder growth transition.
-// [ ] Make all the tranition duration time under one variable controlling.
+// [x] Make all the tranition duration time under one variable controlling.
 // [ ] Refactor the transition state controlment, by carefully reading the log.
 // [ ] Extract the business logic to support other app integration.
 // [ ] Write a blog on this implementation.
@@ -69,6 +69,8 @@ import {
   removeElementByIndex,
   insertElementIntoArray,
 } from "../utilities";
+
+const DEFAULT_TRANSITION_DURATION: number = 0.1;
 
 const Grid = (props: { gridData: GridData }) => {
   // These two states will be accessed and modified from window event listeners
@@ -286,6 +288,10 @@ const Grid = (props: { gridData: GridData }) => {
     return false;
   };
 
+  const calcTransitionDuration = (dx: number, dy: number) => {
+    return (DEFAULT_TRANSITION_DURATION * Math.sqrt(dx * dx + dy * dy)) / 2000;
+  };
+
   const handleSelectedNoteTransitionEnd = (ev: Event) => {
     if (ev.target) {
       ev.target.removeEventListener(
@@ -382,12 +388,25 @@ const Grid = (props: { gridData: GridData }) => {
         ds.noteTransformStates = ds.releasingNoteTransformStates;
         ds.releasingNoteTransformStates = undefined;
 
-        ds.containerTransformStates = [];
+        let transitionDuration = DEFAULT_TRANSITION_DURATION;
+        if (ds.noteTransformStates) {
+          const selectedNoteTransformState = ds.noteTransformStates.find(
+            (item) =>
+              ds &&
+              item.cntId === ds.selectedContainerIndex &&
+              item.rowIndex === ds.selectedRowIndex
+          );
 
+          if (selectedNoteTransformState) {
+            transitionDuration = selectedNoteTransformState.duration;
+          }
+        }
+        ds.containerTransformStates = [];
         ds.containerTransformStates[ds.selectedContainerIndex] = {
           cntId: ds.selectedContainerIndex,
           state: "still",
           transition: true,
+          duration: transitionDuration,
         };
 
         // Because the container is in 'inserting' state,
@@ -398,6 +417,7 @@ const Grid = (props: { gridData: GridData }) => {
           cntId: ds.insertingContainerIndex,
           state: "inserting",
           transition: true,
+          duration: transitionDuration,
         };
       }
 
@@ -444,6 +464,7 @@ const Grid = (props: { gridData: GridData }) => {
     dsModified.containerTransformStates[dsModified.selectedContainerIndex] = {
       cntId: dsModified.selectedContainerIndex,
       state: "selected",
+      duration: DEFAULT_TRANSITION_DURATION,
       transition: dsModified.justStartDragging ? false : true,
     };
 
@@ -459,6 +480,7 @@ const Grid = (props: { gridData: GridData }) => {
       rowIndex: selectedNote.rowIndex,
       state: "dragging",
       transition: false,
+      duration: 0,
       data: {
         dx: selecteNoteDeltaPos.dx,
         dy: selecteNoteDeltaPos.dy,
@@ -478,6 +500,7 @@ const Grid = (props: { gridData: GridData }) => {
       dsModified.containerTransformStates[insertingContainer.cntId] = {
         cntId: insertingContainer.cntId,
         state: "inserting",
+        duration: DEFAULT_TRANSITION_DURATION,
         transition: dsModified.justStartDragging ? false : true,
       };
       dsModified.isOutsideOfAnyContainer = false;
@@ -524,15 +547,19 @@ const Grid = (props: { gridData: GridData }) => {
 
       dsModified.insertingRowIndex = insertingIndex;
 
+      const dx = insertingContainer.rect.left - selectedContainer.rect.left;
+      const dy = insertingNoteTop - selectedNote.rect.top;
+
       // Set the selected note's releasing transform data.
       dsModified.releasingNoteTransformStates.push({
         cntId: selectedNote.cntId,
         rowIndex: selectedNote.rowIndex,
         state: "dragging",
         transition: true,
+        duration: calcTransitionDuration(inputPos.x - dx, inputPos.y - dy),
         data: {
-          dx: insertingContainer.rect.left - selectedContainer.rect.left,
-          dy: insertingNoteTop - selectedNote.rect.top,
+          dx: dx,
+          dy: dy,
           w: dsModified.selectedRect.width,
         },
       });
@@ -551,6 +578,9 @@ const Grid = (props: { gridData: GridData }) => {
               rowIndex: item.rowIndex,
               state: "still",
               transition: dsModified.justStartDragging ? false : true,
+              duration: dsModified.justStartDragging
+                ? 0
+                : DEFAULT_TRANSITION_DURATION,
               data: { dx: 0, dy: dt.delta, w: 0 },
             });
 
@@ -559,6 +589,10 @@ const Grid = (props: { gridData: GridData }) => {
               rowIndex: item.rowIndex,
               state: "still",
               transition: true,
+              duration: calcTransitionDuration(
+                inputPos.x,
+                inputPos.y - dt.delta
+              ),
               data: { dx: 0, dy: dt.delta, w: 0 },
             });
           }
@@ -584,6 +618,7 @@ const Grid = (props: { gridData: GridData }) => {
               rowIndex: item.rowIndex,
               state: "still",
               transition: true,
+              duration: DEFAULT_TRANSITION_DURATION,
               data: { dx: 0, dy: 0, w: 0 },
             });
           }
@@ -605,16 +640,19 @@ const Grid = (props: { gridData: GridData }) => {
             rowIndex: item.rowIndex,
             state: "still",
             transition: true,
+            duration: DEFAULT_TRANSITION_DURATION,
             data: { dx: 0, dy: 0, w: 0 },
           });
+          const dy = selectedNote.rect.height + selectedNote.rect.gap;
           dsModified.releasingNoteTransformStates.push({
             cntId: item.cntId,
             rowIndex: item.rowIndex,
             state: "still",
             transition: true,
+            duration: calcTransitionDuration(inputPos.x, inputPos.y - dy),
             data: {
               dx: 0,
-              dy: selectedNote.rect.height + selectedNote.rect.gap,
+              dy: dy,
               w: 0,
             },
           });
@@ -627,6 +665,7 @@ const Grid = (props: { gridData: GridData }) => {
         rowIndex: selectedNote.rowIndex,
         state: "dragging",
         transition: true,
+        duration: calcTransitionDuration(inputPos.x, inputPos.y),
         data: {
           dx: 0,
           dy: 0,
@@ -659,6 +698,7 @@ const Grid = (props: { gridData: GridData }) => {
           cntId: colIndex,
           state: "still",
           transition: false,
+          duration: DEFAULT_TRANSITION_DURATION,
         };
         let noteTransformStates: NoteTransformStateType[] = [];
 
